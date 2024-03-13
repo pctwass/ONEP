@@ -1,0 +1,61 @@
+host = '127.0.0.1'
+port = 8088
+dashboard-host = '127.0.0.1'
+dashboard-port = 8007
+
+data-stream-name = 'mockup_EEG_stream'
+
+labels = [
+    'label1',
+    'label2',
+    'label3',
+    'label4'
+]
+unclassified-label = 'unclassified'
+
+hyperparameter-config-folder = './configs/hyperparameters'
+[hyperparameter-config-files]
+    UMAP = 'hyperparameters_umap.toml'
+    UMAP_Approx = 'hyperparameters_umap.toml'
+    CEBRA = 'hyperparameters_cebra.toml'
+
+[projector-settings]
+    projection-method = 'CEBRA'
+    min-training-samples-to-start-projecting = 5
+    stream-buffer-size-s = 8
+    max-sampling-frequency = 100
+    max-model-update-frequency = 1
+
+[plot-settings]
+    scatter-point-size = 6
+    point-selection-border-size = 2
+    point-selection-border-color = 'DarkSlateGrey'
+    point-highlight-size = 10
+    point-highlight-border-size = 1
+    point-highlight-border-color = 'DarkSlateGrey'
+
+    unclassified-label-color = 'gray'
+    min-opacity =  0.25
+    show-axis =  false
+    transition-duration = 500
+    
+    [plot-settings.label-colors]
+        label1 = 'blue'
+        label2 = 'red'
+        label3 = 'green'
+
+    [plot-settings.opacity-thresholds]
+        '1' = 20
+        '0.75' = 20
+        '0.5' = 20
+
+    [plot-settings.default-x-range]
+        start = -0.2
+        end = 1.2
+    [plot-settings.default-y-range]
+        start = -0.2
+        end = 1.2
+
+[dashboard-settings]
+    graph-refresh-rate-per-ms = 500
+    refresh-after-selection = true

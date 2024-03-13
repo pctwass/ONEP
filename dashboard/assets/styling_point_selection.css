@@ -1,0 +1,36 @@
+.point-selection-subcontainer {
+    display: flex;
+    justify-content: left;
+    align-items: left;
+    margin-bottom: 24px;
+    vertical-align: bottom;
+}
+
+.point-selection-subcontainer-small-margin {
+    display: flex;
+    justify-content: left;
+    align-items: left;
+    margin-bottom: 5px;
+    vertical-align: bottom;
+}
+
+.psc-value {
+    background-color: #f0f0f0;
+    min-width: 40px; 
+    max-width: 60px;
+    height: 26px;
+    text-align: center;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: "..";
+    font-size: 22px;
+
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.psc-label-selection-dropdown {
+    width: 250px;
+    margin-right: 10px;
+}

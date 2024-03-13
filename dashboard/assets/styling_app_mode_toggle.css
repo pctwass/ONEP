@@ -1,0 +1,16 @@
+.application-mode-container {
+    margin-top: 100px;
+    padding-left: 15px;
+}
+
+.application-mode-label {
+    font-size: 18px;
+    font-weight: bold;
+    vertical-align: center;
+}
+
+.application-mode-switch {
+    display: flex;
+    flex-direction: row; 
+    color: #dddcdc;
+}

@@ -1,0 +1,20 @@
+- general
+    - Input stream for labels
+    - Logging
+
+- plotter
+    - Add contour lines
+
+- projector
+    - Make time_points no longer optional
+
+- CEBRA
+    - find a way to work with labeled data (descrete labels)
+    - find a way to work with hybrid data / update a fitted model
+    - Play with hyperparameters
+        - Reduce fit time
+
+- UMAP
+    - find a way to work with hybrid data
+
+- Bugs

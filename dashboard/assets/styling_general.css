@@ -1,0 +1,73 @@
+.graph-column {
+    float: left;
+    width: 68vw;
+}
+
+.interface-column {
+    float: right;
+    width: 30%;
+    /* background-color: aliceblue; */
+}
+
+.interface-section-container {
+    margin-top: 60px;
+    padding-left: 15px;
+}
+
+.graph {
+    height: 85vh;
+}
+
+.button {
+    background-color: whitesmoke;
+    color: black;
+    border: 1px solid lightgray;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 5px;
+    min-width: 92px;
+}
+
+.button-disabled {
+    background-color: whitesmoke;
+    color: gray;
+    border: 1px solid lightgray;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: default;
+    margin-right: 5px;
+    min-width: 92px;
+}
+
+.button-dangerous {
+    background-color: #f5918d77;
+    color: black;
+    border: 1px solid darkgray;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 5px;
+    min-width: 92px;
+}
+
+.button-bar {
+    margin-bottom: 10px;
+}
+
+.line {
+    margin: 10px 0;
+}
+
+.text {
+    font-size: 20px;
+    margin-right: 15px;
+    margin-left: 10px;
+    vertical-align: center;
+}
+
+.flex-div{
+    display: flex;
+    align-items: center;
+    vertical-align: center;
+}

@@ -1,0 +1,26 @@
+import pandas as pd
+import numpy as np
+from pyparsing import Iterable
+
+def pack_dataframe(data, labels : Iterable, time_points : Iterable):
+    df = pd.DataFrame(data)
+    df['labels'] = labels
+    df['time points'] = time_points
+    return df
+
+
+def unpack_dataframe(df) -> (pd.DataFrame, np.array, np.array):
+    data = df.drop(['labels', 'time points'], axis=1)
+    return data, df['labels'], df['time points']
+
+
+'''
+To avoid altering the original list of dataframes to concat, a copy is made of the list. If the list is discartable, set skip_copy to true 
+'''
+def concact_dataframes(target_df : pd.DataFrame, concating_df : list[pd.DataFrame], skip_copy: bool = False) -> pd.DataFrame:
+    if not skip_copy:
+        data_copy = concating_df.copy()
+    else:
+        data_copy = concating_df
+    data_copy.insert(0, target_df)
+    return pd.concat(data_copy, ignore_index=True, axis=0)
