@@ -37,7 +37,7 @@ class Projector():
     _recent_time_points : list[float]
     _historic_df : pd.DataFrame
 
-    _threading_events : dict[str, threading.Event]
+    _events : dict[str, threading.Event]
     _projections_count : int = 0
     _processes_pausing_projections : int = 0
 
@@ -52,11 +52,11 @@ class Projector():
             projection_method : ProjectionMethodEnum, 
             stream_name: str = "mock_EEG_stream", 
             projector_settings : ProjectorSettings = ProjectorSettings(), 
-            threading_events : dict[str, threading.Event] = {}
+            events : dict[str, threading.Event] = {}
             ):
         
         self.id = f"{projection_method.name}_{str(uuid.uuid4())}"
-        self._threading_events = threading_events
+        self._events = events
 
         self._settings = projector_settings
         
@@ -252,16 +252,16 @@ class Projector():
     flag projector update to pause projecting threath. This reduces synching issues in the plotter
     '''
     def _flag_projector_update(self):
-        if "updating_projector_event" in self._threading_events:
+        if "updating_projector_event" in self._events:
             self._processes_pausing_projections += 1
-            self._threading_events["updating_projector_event"].set()
+            self._events["updating_projector_event"].set()
 
     def _unflag_projector_update(self):
-        if "updating_projector_event" in self._threading_events:
+        if "updating_projector_event" in self._events:
             if self._processes_pausing_projections > 0:
                 self._processes_pausing_projections -= 1
             if self._processes_pausing_projections < 1:
-                self._threading_events["updating_projector_event"].clear()
+                self._events["updating_projector_event"].clear()
         
 
 def split_hybrid_data(data, labels, time_points):
