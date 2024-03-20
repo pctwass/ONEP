@@ -113,7 +113,6 @@ def main() -> int:
         time.sleep(6000)
         process_manager.stop_process("projector_projecting")
         process_manager.stop_process("projector_updating")
-
     return 0
 
 

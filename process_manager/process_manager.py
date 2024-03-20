@@ -46,7 +46,7 @@ class ProcessManager:
 
 
     def _create_locks(self):
-        self._locks["write_projector_historic_df"] = self._manager.Lock() # referenced by key string in Projector
+        self._locks["projector_write_history"] = self._manager.Lock() # referenced by key string in Projector
 
 
     def _create_flags(self):

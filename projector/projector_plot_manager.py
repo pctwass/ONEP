@@ -294,7 +294,7 @@ class ProjectorPlotManager():
         self._model_plot = new_figure
         if num_new_points > 1:
             self._reduce_opacity()
-        print(f"Plotting update took: {time.time() - start_time}")
+        # print(f"Plotting update took: {time.time() - start_time}")
 
 
     def _update_highlight(self, new_figure : go.Figure, data : pd.DataFrame, time_points : Iterable[float]):
@@ -324,7 +324,7 @@ class ProjectorPlotManager():
 
 
     def _reduce_opacity(self):
-        print("Reducing opacity")
+        # print("Reducing opacity")
         for i, (opacity, points) in enumerate(self._points_by_opacity.items()):
             opacity_threshold = self._opacity_thresholds[opacity]
             if np.isnan(opacity_threshold) or i >= len(self._points_by_opacity)-1:
@@ -339,7 +339,7 @@ class ProjectorPlotManager():
                 point_id = points[point_index]
                 scatter, point_scatter_index = self._scatter_plot_service.get_point_trace_and_index_by_id(self._model_plot, point_id)
                 if scatter is None or point_scatter_index is None:
-                    print(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
+                    print(f"could not find point in figure when attempting to reduce opacity. Point: {point_id}")
                     # logger.warning(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
                     continue
 

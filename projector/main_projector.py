@@ -131,9 +131,11 @@ class Projector():
             self._plot_manager.plot(projections, time_points, labels)
             self._projections_count += len(projections)
 
+        self._locks["projector_write_history"].acquire()    # aquire lock
         self._recent_data.append(data)
         self._recent_labels.extend(labels)
         self._recent_time_points.extend(time_points)
+        self._locks["projector_write_history"].release()    # release lock
 
         self._projecting_data = False
 
@@ -159,13 +161,13 @@ class Projector():
 
         #get update data if not provided
         if update_data is None:
-            print("Getting data for update")
+            print(f"Getting data for update. Update: {self.update_counter}")
 
             print("Waiting for current projection to finish")
-            self._locks["write_projector_historic_df"].acquire()    # aquire lock
+            self._locks["projector_write_history"].acquire()    # aquire lock
             historic_data, update_data, labels, time_points = self.get_updated_historic_data()
             self._historic_df = historic_data
-            self._locks["write_projector_historic_df"].release()    # release lock
+            self._locks["projector_write_history"].release()    # release lock
 
             # Only update the projection model when there are a minimum number of data points to train on
             if historic_data.empty or len(historic_data) < self._settings.min_training_samples_to_start_projecting:
@@ -175,7 +177,7 @@ class Projector():
         contains_unlabeled_data = labels is None or any(label != np.NaN for label in labels)
         is_hybrid_data = contains_labeled_data and contains_unlabeled_data
 
-        print("Fitting new model")
+        print(f"Fitting new model. Using {len(update_data)} samples.")
         if is_hybrid_data and SUPPORTS_HYBRID_MODEL:
             # BUG fit new fails when the data is split in such a way that there is only one labeled data entry
             labeled_df, unlabeled_df = split_hybrid_data(update_data, labels, time_points)
@@ -189,13 +191,9 @@ class Projector():
             self._projection_model_latest.fit_new(update_data, labels, time_points)
         print("Completted fitting new model")
 
-        if self._projection_model_curr is None:
-            self.activate_latest_projector()
-
+        # if self._projection_model_curr is None:
+        self.activate_latest_projector()
         self.update_counter += 1
-        if projector_update_event is not None:
-            print("Cleared projector_update_event")
-            projector_update_event.clear()
 
         track_time(start_time, last_time, "updating model")
 
@@ -204,7 +202,7 @@ class Projector():
         self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
 
         print("Waiting for current projection to finish")
-        self._locks["write_projector_historic_df"].acquire()    # aquire lock
+        self._locks["projector_write_history"].acquire()    # aquire lock
         print(f'Getting historic data for updating plot')
 
         historic_df, data, labels, time_points = self.get_updated_historic_data()
@@ -212,10 +210,13 @@ class Projector():
         print(f"Get the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
 
         new_projections = self.project_data(data)
-        print(f"Plotting new model. Taking {len(time_points)} time points")
-        self._plot_manager.update_plot(new_projections, time_points, labels)
+        print(f"Plotting new model. Taking {len(time_points)} points")
+        try:
+            self._plot_manager.update_plot(new_projections, time_points, labels)
+        except Exception as e:
+            print(f"Projector Plotting Exception: {str(e)}")
 
-        self._locks["write_projector_historic_df"].release()    # release lock
+        self._locks["projector_write_history"].release()    # release lock
 
 
     def get_updated_historic_data(self, clear_recent : bool = True):
