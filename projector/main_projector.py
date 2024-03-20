@@ -1,6 +1,6 @@
 import copy
 from math import nan
-import threading
+import multiprocessing
 import uuid
 import pandas as pd
 import numpy as np
@@ -37,7 +37,8 @@ class Projector():
     _recent_time_points : list[float]
     _historic_df : pd.DataFrame
 
-    _events : dict[str, threading.Event]
+    _flags : dict[str, multiprocessing.Event]
+    _locks : dict[str, multiprocessing.Lock]
     _projections_count : int = 0
     _processes_pausing_projections : int = 0
 
@@ -50,19 +51,21 @@ class Projector():
     def __init__(
             self, 
             projection_method : ProjectionMethodEnum, 
+            plot_manager : ProjectorPlotManager,
             stream_name: str = "mock_EEG_stream", 
             projector_settings : ProjectorSettings = ProjectorSettings(), 
-            events : dict[str, threading.Event] = {}
+            flags : dict[str, multiprocessing.Event] = {},
+            locks : dict[str, multiprocessing.Lock] = {}
             ):
         
         self.id = f"{projection_method.name}_{str(uuid.uuid4())}"
-        self._events = events
-
+        self._plot_manager = plot_manager
         self._settings = projector_settings
+        self._flags = flags
+        self._locks = locks
         
         self._init_historic_and_recent_data_objects()
         # self._init_stream_watcher(stream_name)
-        self._init_plot_manger(projection_method)
         self._resolve_projection_method(projection_method)
 
     def _init_historic_and_recent_data_objects(self):
@@ -78,10 +81,6 @@ class Projector():
         buffer_size_s = self._settings.stream_buffer_size_s
         self._stream_watcher = StreamWatcher(stream_name, buffer_size_s)
         self._stream_watcher.connect_to_stream()
-
-    def _init_plot_manger(self, projection_method : ProjectionMethodEnum):
-        plot_manager_name = f"{projection_method.name}_plot_manger"
-        self._plot_manager = ProjectorPlotManager(plot_manager_name, self._settings.plot_settings)
 
     def _resolve_projection_method(self, projection_method : ProjectionMethodEnum):
         logger.info(f'Creating projector of method: {projection_method}')
@@ -141,7 +140,8 @@ class Projector():
 
     def project_data(self, data):
         method_type = self._projection_model_curr.get_method_type()
-        # estimating the projections for UMAP approx will fail if there is not historic data (yet), in this case use standard method to obtain projections
+
+        # estimating the projections for approximate UMAP will fail if there is not historic data (yet), in this case use standard method to obtain projections
         if method_type.value is ProjectionMethodEnum.UMAP_Approx.value and self.update_counter != 0:
             # only take the data columns of the historic data, leave out the labels and time points
             historic_data = self._historic_df.drop(['labels', 'time points'], axis=1)
@@ -153,7 +153,7 @@ class Projector():
 
     
     # Data selection priority: update_data parameter -> historic data
-    def update_projector(self, update_data: pd.DataFrame = None, labels : Iterable[int] = None, time_points : Iterable[float] = None, projector_update_event : threading.Event = None):
+    def update_projector(self, update_data: pd.DataFrame = None, labels : Iterable[int] = None, time_points : Iterable[float] = None, projector_update_event : multiprocessing.Event = None):
         start_time = time.time()
         last_time = start_time
 
@@ -161,12 +161,11 @@ class Projector():
         if update_data is None:
             print("Getting data for update")
 
-            self._flag_projector_update()
             print("Waiting for current projection to finish")
-            self._wait_for_curr_projection_to_finish()
+            self._locks["write_projector_historic_df"].acquire()    # aquire lock
             historic_data, update_data, labels, time_points = self.get_updated_historic_data()
             self._historic_df = historic_data
-            self._unflag_projector_update()
+            self._locks["write_projector_historic_df"].release()    # release lock
 
             # Only update the projection model when there are a minimum number of data points to train on
             if historic_data.empty or len(historic_data) < self._settings.min_training_samples_to_start_projecting:
@@ -204,9 +203,8 @@ class Projector():
     def activate_latest_projector(self):
         self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
 
-        self._flag_projector_update()
         print("Waiting for current projection to finish")
-        self._wait_for_curr_projection_to_finish()
+        self._locks["write_projector_historic_df"].acquire()    # aquire lock
         print(f'Getting historic data for updating plot')
 
         historic_df, data, labels, time_points = self.get_updated_historic_data()
@@ -216,7 +214,8 @@ class Projector():
         new_projections = self.project_data(data)
         print(f"Plotting new model. Taking {len(time_points)} time points")
         self._plot_manager.update_plot(new_projections, time_points, labels)
-        self._unflag_projector_update()
+
+        self._locks["write_projector_historic_df"].release()    # release lock
 
 
     def get_updated_historic_data(self, clear_recent : bool = True):
@@ -252,16 +251,16 @@ class Projector():
     flag projector update to pause projecting threath. This reduces synching issues in the plotter
     '''
     def _flag_projector_update(self):
-        if "updating_projector_event" in self._events:
+        if "updating_projector_event" in self._flags:
             self._processes_pausing_projections += 1
-            self._events["updating_projector_event"].set()
+            self._flags["updating_projector_event"].set()
 
     def _unflag_projector_update(self):
-        if "updating_projector_event" in self._events:
+        if "updating_projector_event" in self._flags:
             if self._processes_pausing_projections > 0:
                 self._processes_pausing_projections -= 1
             if self._processes_pausing_projections < 1:
-                self._events["updating_projector_event"].clear()
+                self._flags["updating_projector_event"].clear()
         
 
 def split_hybrid_data(data, labels, time_points):

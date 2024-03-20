@@ -17,6 +17,10 @@ from utils.stream_watcher import StreamWatcher
 from projector.projector_continues_shell import ProjectorContinuesShell
 from projector.projector_settings import ProjectorSettings
 from projector.main_projector import Projector
+from projector.projector_plot_manager import ProjectorPlotManager
+
+from process_manager.Process_manager import ProcessManager
+
 
 module_paths = dependency_resolver.reference_module_paths
 
@@ -27,6 +31,7 @@ config_path: str = os.path.join(config_folder, config_file_name)
 stream_watcher : StreamWatcher
 projector_shell : ProjectorContinuesShell
 configuration_resolver = ConfigurationResolver(config_path)
+
 
 def init_logger():
     logger.setLevel(20)
@@ -77,12 +82,16 @@ def main() -> int:
     init_logger()
 
     projector_settings, dashboard_settings = get_settings_from_config()
-    mode = 'sequential'
+    mode = 'continuous'
 
-    stream_name = configuration_resolver.get('data-stream-name')
+    in_stream_name = configuration_resolver.get('data-stream-name')
+    projector_kwargs = get_projector_kwargs(projector_settings, in_stream_name)
+    projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings, in_stream_name)
 
     if mode == 'sequential':
-        projector = Projector(projector_settings.projection_method, stream_name, projector_settings)
+        plot_manager = ProjectorPlotManager(**projector_plot_manager_kwargs)
+        projector_kwargs["plot_manager"] = plot_manager
+        projector = Projector(**projector_kwargs)
         init_dashboard(dashboard_settings, projector)
 
         project_new_data(projector, 10)
@@ -97,23 +106,18 @@ def main() -> int:
 
 
     elif mode == 'continuous':
-        projector_shell = ProjectorContinuesShell(projector_settings.projection_method, stream_name, projector_settings)
-        init_dashboard(dashboard_settings, projector_shell)
+        process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs)
+        #init_dashboard(dashboard_settings, projector_shell)
 
-        projector = projector_shell.get_projector()
-        # project_new_data(projector, 10)
-        # projector.update_projector()
-
-        projector_shell.start_updating_projector()
-        projector_shell.start_projecting()
+        process_manager.start_all_processes()
         time.sleep(6000)
-        projector_shell.stop_projecting()
-        projector_shell.stop_updating_projector()
+        process_manager.stop_process("projector_projecting")
+        process_manager.stop_process("projector_updating")
 
     return 0
 
 
-def get_settings_from_config() -> (ProjectorSettings, DashboardSettings):
+def get_settings_from_config() -> tuple[ProjectorSettings, DashboardSettings]:
     projector_settings = configuration_resolver.get_projector_settings_from_config()
     dashboard_settings = configuration_resolver.get_dashboard_settings_from_config()
     return projector_settings, dashboard_settings
@@ -122,6 +126,21 @@ def get_settings_from_config() -> (ProjectorSettings, DashboardSettings):
 def project_new_data(projector, repeat : int = 1):
     for i in range(repeat):
         projector.project_new_data()
+
+
+def get_projector_kwargs(projector_settings, in_stream_name) -> dict[str, any]:
+    return dict(
+        projection_method = projector_settings.projection_method, 
+        stream_name = in_stream_name, 
+        projector_settings = projector_settings 
+    )
+
+
+def get_projector_plot_manager_kwargs(projector_settings, in_stream_name) -> dict[str, any]:
+    return dict(
+        name = f"{projector_settings.projection_method.name}_plot_manger",
+        settings = projector_settings.plot_settings
+    )
 
 
 

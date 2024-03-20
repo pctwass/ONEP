@@ -6,39 +6,45 @@ from utils.logging import logger
 from projector.main_projector import Projector
 
 
-def create_process_project(projector : Projector) -> tuple[multiprocessing.Process, dict[str, multiprocessing.Event]]:
+projector_projecting_expacted_flags = [ "stop", "pause", "updating_projector" ]
+projector_updating_expacted_flags = [ "stop", "pause" ]
+
+
+def create_process_project(projector : Projector, flags : dict[str, multiprocessing.Event]) -> multiprocessing.Process:
+    if not all(flag in flags.keys() for flag in projector_projecting_expacted_flags):
+        raise Exception(f"Expected the following flags: {projector_projecting_expacted_flags}, got {flags.keys()}")
+    
     process_target = _projecting_loop
-    event_names = [ "stop_projecting_event", "pause_projecting_event", "updating_projector_event" ]
-    kwargs = dict(projector=projector)
-    subprocess, events = create_living_process(process_target, kwargs=kwargs, event_names=event_names)
+    kwargs = dict(projector=projector, flags=flags)
+    subprocess = create_living_process(process_target, kwargs=kwargs)
 
-    return subprocess, events
+    return subprocess
 
 
-def create_process_update_projector(projector : Projector) -> tuple[multiprocessing.Process, dict[str, multiprocessing.Event]]:
+def create_process_update_projector(projector : Projector, flags : dict[str, multiprocessing.Event]) -> multiprocessing.Process:
+    if not all(flag in flags.keys() for flag in projector_updating_expacted_flags):
+        raise Exception(f"Expected the following flags: {projector_updating_expacted_flags}, got {flags.keys()}")
+
     process_target = _update_projector_loop
-    event_names = [ "stop_updating_event", "pause_updating_event" ]
-    kwargs = dict(projector=projector)
-    subprocess, events = create_living_process(process_target, kwargs=kwargs, event_names=event_names)
+    kwargs = dict(projector=projector, flags=flags)
+    subprocess = create_living_process(process_target, kwargs=kwargs)
 
-    return subprocess, events
+    return subprocess
 
 
 def _projecting_loop(
     projector : Projector,
-    stop_projecting_event: multiprocessing.Event = multiprocessing.Event(),
-    pause_projecting_event: multiprocessing.Event = multiprocessing.Event(),
-    updating_projector_event: multiprocessing.Event = multiprocessing.Event()
+    flags : dict[multiprocessing.Event] = {}
     ):
 
-    freq_hz = projector._settings.sampling_frequency
+    freq_hz = projector._getvalue()._settings.sampling_frequency
     dt = 1 / freq_hz
     tlast = time.time_ns()
 
-    while not stop_projecting_event.is_set():
+    while not flags["stop"].is_set():
         now = time.time_ns()
         if now - tlast > dt * 10**9:
-            while pause_projecting_event.is_set() or updating_projector_event.is_set():
+            while flags["pause"].is_set() or flags["updating_projector"].is_set():
                 time.sleep(SLEEPING_DURATION)
             projector.project_new_data()
             tlast = now
@@ -46,18 +52,17 @@ def _projecting_loop(
 
 def _update_projector_loop(
     projector : Projector,
-    stop_updating_event: multiprocessing.Event = multiprocessing.Event(),
-    pause_updating_event: multiprocessing.Event = multiprocessing.Event()
+    flags : dict[multiprocessing.Event] = {}
     ):
 
-    freq_hz = projector._settings.model_update_frequency
+    freq_hz = projector._getvalue()._settings.model_update_frequency
     dt = 1 / freq_hz
     tlast = time.time_ns()
 
-    while not stop_updating_event.is_set():
+    while not flags["stop"].is_set():
         now = time.time_ns()
         if now - tlast > dt * 10**9:
-            while pause_updating_event.is_set():
+            while flags["pause"].is_set():
                 time.sleep(SLEEPING_DURATION)
             projector.update_projector()
             tlast = now
