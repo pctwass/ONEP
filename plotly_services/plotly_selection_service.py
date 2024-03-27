@@ -3,12 +3,13 @@ import plotly.graph_objects as go
 from plotly_services.scatter_plot_settings import ScatterPlotSettings
 from plotly_services.plotly_plot_service import PlotlyPlotSerivce
 
-SELECTION_TRACE_UID = 'scatter_selection'
+SELECTION_TRACE_ID = 'scatter_selection'
+SELECTION_POINT_ID_PREFIX = 'selection_'
 
 class PlotlySelectionService(PlotlyPlotSerivce):
     def init_selection_trace(self, figure : go.Figure, plot_settings : ScatterPlotSettings):
         figure.add_trace(go.Scatter(
-            uid=SELECTION_TRACE_UID,
+            uid=SELECTION_TRACE_ID,
             mode="markers",
             hoverinfo='skip',
             showlegend=False,
@@ -26,34 +27,44 @@ class PlotlySelectionService(PlotlyPlotSerivce):
         ))
 
 
+    def is_selection_id(self, point_id : str) -> bool:
+        return point_id.startswith(SELECTION_POINT_ID_PREFIX)
+    
+
+    def get_selection_id(self, point_id : str) -> str:
+        return(SELECTION_POINT_ID_PREFIX + point_id)
+    
+
     def get_selection_trace(self, figure : go.Figure) -> go.Scatter:
-        return next(trace for trace in figure.data if trace.uid == SELECTION_TRACE_UID)
+        return next(trace for trace in figure.data if trace.uid == SELECTION_TRACE_ID)
+    
+
+    def get_point_id_from_selection_id(self, selection_id : str) -> str:
+        if not self.is_selection_id(selection_id):
+            raise Exception(f"The provided highlight id '{selection_id}' did not start with the highlight point prefix, cannot get point id.")
+        return selection_id[len(SELECTION_POINT_ID_PREFIX):]
     
 
     def select_point(self, figure : go.Figure, point_x : float, point_y : float, point_id : str):
-        selection_trace = next((trace for trace in figure.data if trace.uid==SELECTION_TRACE_UID), None)
+        selection_trace = next((trace for trace in figure.data if trace.uid==SELECTION_TRACE_ID), None)
         if selection_trace is None:
             raise Exception("No selection trace was created upon creating the figure.")
         
-        selection_id = self._get_selection_id(point_id)
+        selection_id = self.get_selection_id(point_id)
         self._add_point(selection_trace, selection_id, point_x, point_y)
 
 
     def deselect_point(self, figure : go.Figure, point_id : str):
-        selection_trace = next((trace for trace in figure.data if trace.uid==SELECTION_TRACE_UID), None)
+        selection_trace = next((trace for trace in figure.data if trace.uid==SELECTION_TRACE_ID), None)
         if selection_trace is None:
             raise Exception("No selection trace was created upon creating the figure.")
         
-        selection_id = self._get_selection_id(point_id)
+        selection_id = self.get_selection_id(point_id)
         self._remove_point(selection_trace, selection_id)
 
 
     def deselect_all(self, figure : go.Figure):
-        selection_trace = next((trace for trace in figure.data if trace.uid==SELECTION_TRACE_UID), None)
+        selection_trace = next((trace for trace in figure.data if trace.uid==SELECTION_TRACE_ID), None)
         if selection_trace is None:
             raise Exception("No selection trace was created upon creating the figure.")
         self._clear_trace(selection_trace)
-    
-
-    def _get_selection_id(self, point_id : str) -> str:
-        return(f"selection_{self.get_point_uid_from_point_id(point_id)}")

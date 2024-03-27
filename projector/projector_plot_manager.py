@@ -19,7 +19,7 @@ from plotly_services.scatter_plot_settings import ScatterPlotSettings
 
 class ProjectorPlotManager():
     name : str
-    _model_plot : go.Figure
+    _plot_figure : go.Figure
     _settings : PlotSettings
     _scatter_plot_service : PlotlyScatterService
     _selection_plot_service : PlotlySelectionService
@@ -28,10 +28,12 @@ class ProjectorPlotManager():
     _labels_dict : dict[int, str] = {}
     _color_map : dict[str, str] = {}
     _opacity_thresholds : dict[float, int] = {}
-    _points_by_opacity : dict[float, Iterable[str]]= {}
     _init_opacity : float = 1.0
 
-    _selected_points : dict[str, tuple[float, float]] = {}
+    _points_by_opacity : dict[float, Iterable[str]]= {}
+
+    _points : dict[str, str] = {} # keyval: point_id, label
+    _selected_points : dict[str, tuple[float, float]] = {} # keyval: point_id, (x_cord, y_cord)
     _highlighted_points_ids : list[str] = []
 
 
@@ -51,7 +53,7 @@ class ProjectorPlotManager():
         self._highlight_plot_service = PlotlyHighlightService()
 
         scatter_plot_settings = self._resolve_scatter_plot_settings()
-        self._model_plot = self._scatter_plot_service.create_figure(scatter_plot_settings)
+        self._plot_figure = self._scatter_plot_service.create_figure(scatter_plot_settings)
 
     def _resolve_label_settings(self):
         self._labels_dict[-1] = self._settings.unclassified_label
@@ -95,131 +97,138 @@ class ProjectorPlotManager():
             self._settings.transition_duration,
         )
     
-
+    '''
+    Get methods
+    '''
     def get_plot(self) -> go.Figure:
-        return self._model_plot
+        return self._plot_figure
 
 
     def get_labels(self) -> list[str]:
         labels = [self._settings.unclassified_label]
         labels.extend(self._settings.labels)
         return labels
-    
-
-    def get_point_uid_from_point_id(self, point_id : str) -> str:
-        while point_id is None:
-            break
-        return self._scatter_plot_service.get_point_uid_from_point_id(point_id)
 
 
-    def get_trace_uid_by_point_id(self, id : float) -> str:
-        trace = self._scatter_plot_service.get_point_trace_by_id(self._model_plot, id)
+    def get_trace_id_by_point_id(self, point_id : float) -> str:
+        trace = self._scatter_plot_service.get_trace_by_point_id(self._plot_figure, point_id)
         return trace.uid
 
 
-    def get_trace_label(self, uid : str) -> str:
-        return self._scatter_plot_service.get_trace_by_uid(self._model_plot, uid).name
+    def get_label_by_point_id(self, point_id : str) -> str:
+        if point_id in self._points:
+            return self._points[point_id]
+        print(f"Warning: {point_id} could not be found in the tracked list of points, searching for id in figure. Bad Bookkeeping.")
+        return self._scatter_plot_service.get_label_by_point_id(self._plot_figure, point_id)
     
-
-    def get_selected_point_ids(self) -> list[str]:
+    def get_selected_point_ids(self):
         return self._selected_points.keys()
-
 
     def get_count_selected_points(self) -> int:
         return len(self._selected_points)
     
+    '''
+    Point selection
+    '''
+    def is_selected_point(self, point_id : str) -> bool:
+        return point_id in self._selected_points
 
-    def is_selected_point(self, id : str) -> bool:
-        return id in self._selected_points
 
-    def select_point(self, id : str, x : float = None, y :float = None):
-        if id is not None and not self._scatter_plot_service.is_scatter_trace_point(id):
-            return
+    def select_point(self, point_id : str, x : float = None, y :float = None):
+        point_id = self._ensure_id_is_point_id(point_id)
 
-        if self._highlight_plot_service.is_highlight_point(id):
-            time_point = self._scatter_plot_service.get_point_uid_from_point_id(id)
-            id = next(id for id in self._highlighted_points_ids if id.endswith(time_point))
-        
-        if id is None:
-            raise Exception("Point id cannot be None.")
-
-        if id in self._selected_points:
+        # return when the point is already selected            
+        if point_id in self._selected_points:
             return
         
         if x is None or y is None:
-            trace, point_index = self._scatter_plot_service.get_point_trace_and_index_by_id(id)
+            trace, point_index = self._scatter_plot_service.get_trace_and_point_index_by_point_id(point_id)
             x = trace.x[point_index]
             y = trace.y[point_index]
-        self._selected_points[id] = (x, y)
-        self._selection_plot_service.select_point(self._model_plot, x, y, id)
+        self._selection_plot_service.select_point(self._plot_figure, x, y, point_id)
+        self._selected_points[point_id] = (x, y)
 
-    def deselect_point(self, id : str):
-        if self._highlight_plot_service.is_highlight_point(id):
-            time_point = self._scatter_plot_service.get_point_uid_from_point_id(id)
-            id = next(id for id in self._highlighted_points_ids if id.endswith(time_point))
 
-        self._selected_points.pop(id, None)
-        self._selection_plot_service.deselect_point(self._model_plot, id)
+    def deselect_point(self, point_id : str):
+        point_id = self._ensure_id_is_point_id(point_id)
+        self._selection_plot_service.deselect_point(self._plot_figure, point_id)
+        self._selected_points.pop(point_id, None)
+
 
     def deselect_all(self):
+        self._selection_plot_service.deselect_all(self._plot_figure)
         self._selected_points.clear()
-        self._selection_plot_service.deselect_all(self._model_plot)
 
 
+    '''
+    Point highlighting
+    '''
     def highlight_selected(self):
         for point_id, point_cords in self._selected_points.items():
             self.highlight_point(point_id, point_cords[0], point_cords[1])
 
-    def highlight_point(self, id : str, x : float = None, y :float = None):
-        if id in self._highlighted_points_ids:
+
+    def highlight_point(self, point_id : str, x : float = None, y :float = None):
+        point_id = self._ensure_id_is_point_id(point_id)
+
+        # return if the point is already highlighted
+        if point_id in self._highlighted_points_ids:
             return
 
         if x is None or y is None:
-            trace, point_index = self._scatter_plot_service.get_point_trace_and_index_by_id(id)
+            trace, point_index = self._scatter_plot_service.get_trace_and_point_index_by_point_id(point_id)
+            if trace is None or point_index is None:
+                return
             x = trace.x[point_index]
             y = trace.y[point_index]
-        self._highlighted_points_ids.append(id)
-        self._highlight_plot_service.highlight_point(self._model_plot, x, y, id)
+
+        label = self.get_label_by_point_id(point_id)
+        self._highlight_plot_service.highlight_point(self._plot_figure, x, y, point_id, label)
+        self._highlighted_points_ids.append(point_id)
+
 
     def dehighlight_selected(self):
         for point_id, _ in self._selected_points.items():
             self.dehighlight_point(point_id)
 
-    def dehighlight_point(self, id : str):
-        if id not in self._highlighted_points_ids:
+
+    def dehighlight_point(self, point_id : str):
+        point_id = self._ensure_id_is_point_id(point_id)
+        
+        if point_id not in self._highlighted_points_ids:
             return
 
-        self._highlight_plot_service.dehighlight_point(self._model_plot, id)
-        self._highlighted_points_ids.remove(id)
+        self._highlight_plot_service.dehighlight_point(self._plot_figure, point_id)
+        self._highlighted_points_ids.remove(point_id)
+
 
     def dehighlight_all(self):
+        self._highlight_plot_service.dehighlight_all(self._plot_figure)
         self._highlighted_points_ids.clear()
-        self._highlight_plot_service.dehighlight_all(self._model_plot)
 
 
+    '''
+    Point updating
+    '''
     def update_selected_points_label(self, new_label : str):
-        for selected_point_id in list(self._selected_points.keys()):
-            self.update_point_label(selected_point_id, new_label)
+        for point_id in list(self._selected_points.keys()):
+            self.update_point_label(point_id, new_label)
 
 
-    def update_point_label(self, id : str, new_label : str) -> str:
-        trace, point_index = self._scatter_plot_service.get_point_trace_and_index_by_id(self._model_plot, id)
-        updated_point_id = self._scatter_plot_service.update_point_label(self._model_plot, trace, point_index, new_label)
-
-        if updated_point_id is None:
-            raise Exception(f"Something went wrong while assigning point {id} with new label {new_label}, new id was None.")
-
-        if id in self._highlighted_points_ids:
-            self._highlight_plot_service.update_highlight_point_label(self._model_plot, id, new_label)
-            highlighted_point_id_index = self._highlighted_points_ids.index(id)
-            self._highlighted_points_ids[highlighted_point_id_index] = updated_point_id
-
-        if id in self._selected_points:
-            self._selected_points[updated_point_id] = self._selected_points.pop(id)
+    def update_point_label(self, point_id : str, new_label : str) -> str:
+        point_id = self._ensure_id_is_point_id(point_id)
         
-        return updated_point_id
+        trace, point_index = self._scatter_plot_service.get_trace_and_point_index_by_point_id(self._plot_figure, point_id)
+        self._scatter_plot_service.update_point_label(self._plot_figure, trace, point_index, new_label)
+        self._points[point_id] = new_label
+
+        if point_id in self._highlighted_points_ids:
+            self._highlight_plot_service.update_highlight_point_label(self._plot_figure, point_id, new_label)
             
-    
+
+    '''
+    General public methods
+    '''
     def refresh_axis_range(self, plot_aspect_ratio : float):
         x_range = self._settings.xaxis_range
         y_range = self._settings.yaxis_range
@@ -228,29 +237,33 @@ class ProjectorPlotManager():
             y_range_mean = (y_range[0] + y_range[-1]) / 2
             x_range = scale_and_center_range(y_range, plot_aspect_ratio, y_range_mean)
             self._settings.xaxis_range = x_range
-            self._model_plot.update_xaxes(range=x_range)
+            self._plot_figure.update_xaxes(range=x_range)
         if x_range is not None and y_range is None and plot_aspect_ratio is not None:
             x_range_mean = (x_range[0] + x_range[-1]) / 2
             y_range = scale_and_center_range(x_range, plot_aspect_ratio, x_range_mean)
             self._settings.yaxis_range = y_range
-            self._model_plot.update_yaxes(range=y_range)
+            self._plot_figure.update_yaxes(range=y_range)
 
 
     def plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
         start_time = time.time()
 
+
         data = self._resolve_data(data)
+        time_points = [str(time_point) for time_point in time_points]
         labels = self._resolve_labels(labels, len(time_points))
         self._normalize_data(data)
-        ids = self._scatter_plot_service.add_scatter(
-            self._model_plot,
+
+        self._scatter_plot_service.add_scatter(
+            self._plot_figure,
             data[0],
             data[1],
             time_points,
             labels
         )
 
-        self._track_points_by_opacity(ids)
+        self._points.update({point_id: label for point_id, label in zip(time_points, labels)})
+        self._expand_opacity_dict(time_points)
         self._reduce_opacity()
 
         print(f"Plotting projection took: {time.time() - start_time}")
@@ -262,21 +275,16 @@ class ProjectorPlotManager():
 
         start_time = time.time()
         data = self._resolve_data(data)
+        time_points = [str(time_point) for time_point in time_points]
         labels = self._resolve_labels(labels, len(time_points))
 
         # check if there are any newly added points
         num_new_points = len(data) - self._get_num_plotted_points()
         if num_new_points > 1:
-            if labels is None: 
-                new_labels = [self._settings.unclassified_label] * num_new_points
-            else:
-                new_labels = labels[:num_new_points]
+            new_point_ids = time_points[:num_new_points] 
+            self._expand_opacity_dict(new_point_ids, self._init_opacity)
 
-            new_time_points = time_points[:num_new_points] 
-            new_point_ids = [self._scatter_plot_service._get_point_id(new_labels[i], self._init_opacity, new_time_points[i]) for i in range(num_new_points)]
-            self._track_points_by_opacity(new_point_ids, self._init_opacity)
-
-        self._update_axis_edge_values(data)
+        self._update_axis_ranges(data)
         scatter_plot_settings = self._resolve_scatter_plot_settings()
         opacity_values = self._get_opacity_values_chronoligical_order()
         self._normalize_data(data)
@@ -289,47 +297,62 @@ class ProjectorPlotManager():
             opacity_values
         )
         
+
+        self._points = {point_id: label for point_id, label in zip(time_points, labels)}
         self._update_highlight(new_figure, data, time_points)
         self._update_selection(new_figure, data, time_points)
-        self._model_plot = new_figure
+        self._plot_figure = new_figure
+
         if num_new_points > 1:
             self._reduce_opacity()
         print(f"Plotting update took: {time.time() - start_time}")
 
 
+    '''
+    General private methods
+    '''
+    def _ensure_id_is_point_id(self, id : str) -> str:
+        if self._highlight_plot_service.is_highlight_id(id):
+            return self._highlight_plot_service.get_point_id_from_highlight_id(id)
+        if self._selection_plot_service.is_selection_id(id):
+            return self._selection_plot_service.get_point_id_from_selection_id(id)
+        return id
+
+
     def _update_highlight(self, new_figure : go.Figure, data : pd.DataFrame, time_points : Iterable[float]):
-        for highlight_point_id in self._highlighted_points_ids:
-            time_point = float(highlight_point_id.split("_")[-1])
-            point_index = time_points.index(time_point)
+        for point_id in self._highlighted_points_ids:
+            point_index = time_points.index(point_id)
             x = data[0][point_index]
             y = data[1][point_index]
 
-            self._highlight_plot_service.highlight_point(new_figure, x, y, highlight_point_id)
+            label = self.get_label_by_point_id(point_id)
+            self._highlight_plot_service.highlight_point(new_figure, x, y, point_id, label)
+
 
     def _update_selection(self, new_figure : go.Figure, data : pd.DataFrame, time_points : Iterable[float]):
-        for selected_point_id in self._selected_points:
-            time_point = float(selected_point_id.split("_")[-1])
-            point_index = time_points.index(time_point)
+        for point_id in self._selected_points:
+            point_index = time_points.index(point_id)
             x = data[0][point_index]
             y = data[1][point_index]
 
-            self._selection_plot_service.select_point(new_figure, x, y, selected_point_id)
-            self._selected_points[selected_point_id] = (x, y)
+            self._selection_plot_service.select_point(new_figure, x, y, point_id)
+            self._selected_points[point_id] = (x, y)
 
 
-    def _track_points_by_opacity(self, ids : Iterable[str], opacity : float | None = None):
+    def _expand_opacity_dict(self, time_points : Iterable[str], opacity : float | None = None):
         if opacity is None:
             opacity = list(self._opacity_thresholds.keys())[0]
-        self._points_by_opacity[opacity].extend(ids)
+        self._points_by_opacity[opacity].extend(time_points)
 
 
     def _reduce_opacity(self):
-        print("Reducing opacity")
         for i, (opacity, points) in enumerate(self._points_by_opacity.items()):
+            # if there is no opacity threshold defined or the selected opacity level is the lowerst/final opacity level, continue
             opacity_threshold = self._opacity_thresholds[opacity]
             if np.isnan(opacity_threshold) or i >= len(self._points_by_opacity)-1:
                 continue
             
+            # if there are fewer points in the opacity level than are maximally allowed, continue
             num_points_to_reduce_opacity = len(points) - opacity_threshold
             if num_points_to_reduce_opacity < 1:
                 continue
@@ -337,25 +360,16 @@ class ProjectorPlotManager():
             reduced_opacity = list(self._points_by_opacity.keys())[i+1]
             for point_index in range(num_points_to_reduce_opacity):
                 point_id = points[point_index]
-                scatter, point_scatter_index = self._scatter_plot_service.get_point_trace_and_index_by_id(self._model_plot, point_id)
-                if scatter is None or point_scatter_index is None:
+                scatter_trace, point_scatter_index = self._scatter_plot_service.get_trace_and_point_index_by_point_id(self._plot_figure, point_id)
+                if scatter_trace is None or point_scatter_index is None:
                     print(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
                     # logger.warning(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
                     continue
 
-                new_id = self._scatter_plot_service.update_point_opacity(self._model_plot, scatter, point_scatter_index, reduced_opacity)
-                if new_id is not None:
-                    self._points_by_opacity[reduced_opacity].append(new_id)
+                self._scatter_plot_service.update_point_opacity(self._plot_figure, scatter_trace, point_scatter_index, reduced_opacity)
+                self._points_by_opacity[reduced_opacity].append(point_id)
 
-                if point_id in self._selected_points:
-                    point_coords = self._selected_points.pop(point_id)
-                    if new_id is not None:
-                        self._selected_points[new_id] = point_coords
-                if point_id in self._highlighted_points_ids:
-                    self._highlighted_points_ids.pop(point_coords)
-                    if new_id is not None:
-                        self._highlighted_points_ids.append(new_id)
-
+            # remove all points of the old opacity value that were assigned a lower opacity value
             del points[:num_points_to_reduce_opacity]
 
 
@@ -368,8 +382,6 @@ class ProjectorPlotManager():
     def _normalize_data(self, data : pd.DataFrame):
         x_span = self._xaxis_edge_values[1] - self._xaxis_edge_values[0]
         y_span = self._yaxis_edge_values[1] - self._yaxis_edge_values[0]
-        x_range_mean = (self._xaxis_edge_values[1] + self._xaxis_edge_values[0]) / 2
-        y_range_mean = (self._yaxis_edge_values[1] + self._yaxis_edge_values[0]) / 2
         normalized_range_mean = 0.5
 
         if x_span > y_span:
@@ -377,8 +389,8 @@ class ProjectorPlotManager():
         else:
             normalization_factor = 1 / y_span
 
-        data[0] = scale_and_center_pd_series(data[0], normalization_factor, normalized_range_mean, x_range_mean)
-        data[1] = scale_and_center_pd_series(data[1], normalization_factor, normalized_range_mean, y_range_mean)
+        data[0] = scale_and_center_pd_series(data[0], normalization_factor, normalized_range_mean)
+        data[1] = scale_and_center_pd_series(data[1], normalization_factor, normalized_range_mean)
 
 
     # label count is only needed when labels is None, this will set the labels to the unclassified label
@@ -397,7 +409,7 @@ class ProjectorPlotManager():
         colors_in_use = list(self._color_map.values())
         named_colors_list = list(mcolors.CSS4_COLORS.keys())
         if colors_in_use is not None and set(named_colors_list).issubset(set(colors_in_use)):
-            raise Exception('all colors available to plotly are already being used')
+            raise Exception('All colors available to plotly are already being used.')
 
         random_color = random.choice(named_colors_list)
         while colors_in_use is not None and random_color in colors_in_use:
@@ -416,7 +428,7 @@ class ProjectorPlotManager():
         return opacity_values
     
 
-    def _update_axis_edge_values(self, data : pd.DataFrame):
+    def _update_axis_ranges(self, data : pd.DataFrame):
         if data is None or len(data) < 1:
             return
 
