@@ -5,4 +5,5 @@
     "python.analysis.extraPaths": [
         //"./embedding_projector/projector"
     ],
+    "justMyCode": false
 }

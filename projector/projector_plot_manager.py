@@ -55,6 +55,9 @@ class ProjectorPlotManager():
         scatter_plot_settings = self._resolve_scatter_plot_settings()
         self._plot_figure = self._scatter_plot_service.create_figure(scatter_plot_settings)
 
+    def set_name(self, name : str):
+        self.name = name
+
     def _resolve_label_settings(self):
         self._labels_dict[-1] = self._settings.unclassified_label
         for i, label in enumerate(self._settings.labels):
@@ -247,7 +250,6 @@ class ProjectorPlotManager():
 
     def plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
         start_time = time.time()
-
 
         data = self._resolve_data(data)
         time_points = [str(time_point) for time_point in time_points]

@@ -6,7 +6,7 @@ reference_module_paths = [
     './utils',
     './plotly_services',
     './projector',  
-    './process_manager',  
+    './process_management',  
     './projector/projection_methods/submodules/CEBRA', # CEBRA submodule
     './projector/projection_methods/submodules/CEBRA/cebra' # CEBRA submodule
 ]

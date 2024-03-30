@@ -15,11 +15,12 @@ from utils.logging import logger
 from utils.stream_watcher import StreamWatcher
 
 from projector.projector_continues_shell import ProjectorContinuesShell
-from projector.projector_settings import ProjectorSettings
 from projector.main_projector import Projector
+from projector.projector_settings import ProjectorSettings
 from projector.projector_plot_manager import ProjectorPlotManager
+from projector.plot_settings import PlotSettings
 
-from process_manager.Process_manager import ProcessManager
+from process_management.process_manager  import ProcessManager
 
 
 module_paths = dependency_resolver.reference_module_paths
@@ -87,7 +88,8 @@ def main() -> int:
 
     in_stream_name = configuration_resolver.get('data-stream-name')
     projector_kwargs = get_projector_kwargs(projector_settings, in_stream_name)
-    projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings, in_stream_name)
+    projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings.plot_settings)
+    dashboard_kwargs = get_dashboard_kwargs(dashboard_settings)
 
     if mode == 'sequential':
         plot_manager = ProjectorPlotManager(**projector_plot_manager_kwargs)
@@ -107,10 +109,13 @@ def main() -> int:
 
 
     elif mode == 'continuous':
-        process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs)
+        process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
         #init_dashboard(dashboard_settings, projector_shell)
 
         process_manager.start_all_processes()
+        webbrowser.open('http://127.0.0.1:8007/')
+        # process_manager.start_process("projector_projecting")
+        # process_manager.start_process("projector_updating")
         time.sleep(6000)
         process_manager.stop_process("projector_projecting")
         process_manager.stop_process("projector_updating")
@@ -128,7 +133,7 @@ def project_new_data(projector, repeat : int = 1):
         projector.project_new_data()
 
 
-def get_projector_kwargs(projector_settings, in_stream_name) -> dict[str, any]:
+def get_projector_kwargs(projector_settings : ProjectorSettings, in_stream_name) -> dict[str, any]:
     return dict(
         projection_method = projector_settings.projection_method, 
         stream_name = in_stream_name, 
@@ -136,10 +141,16 @@ def get_projector_kwargs(projector_settings, in_stream_name) -> dict[str, any]:
     )
 
 
-def get_projector_plot_manager_kwargs(projector_settings, in_stream_name) -> dict[str, any]:
+def get_projector_plot_manager_kwargs(plot_settings : PlotSettings) -> dict[str, any]:
     return dict(
-        name = f"{projector_settings.projection_method.name}_plot_manger",
-        settings = projector_settings.plot_settings
+        name = "plot manager",
+        settings = plot_settings
+    )
+
+
+def get_dashboard_kwargs(dashboard_settings : DashboardSettings) -> dict[str, any]:
+    return dict(
+        settings = dashboard_settings
     )
 
 

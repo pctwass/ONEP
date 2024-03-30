@@ -18,9 +18,8 @@ from dashboard.dashboard_layout import DashboardLayout
 
 _self = None
 _plot_figure : go.Figure = no_update
-_registered_projectors : dict[str, Projector | ProjectorContinuesShell] = {}
-_active_projector : Projector = None
-_active_plot_manager : ProjectorPlotManager = None
+_projector : Projector = None
+_plot_manager : ProjectorPlotManager = None
 _model_iteration_plotted : str = 0
 
 
@@ -36,12 +35,16 @@ class Dashboard():
     _paused_processes_retained : dict[str, bool]
     
 
-    def __init__(self, settings : DashboardSettings) -> None:
+    def __init__(self, settings : DashboardSettings, projector : Projector, plot_manager : ProjectorPlotManager) -> None:
         logger = logging.getLogger("werkzeug")
         logger.setLevel(logging.WARNING)
 
         global _settings
         _settings = settings
+        global _projector
+        _projector = projector
+        global _plot_manager
+        _plot_manager = plot_manager
 
         global _layout
         self.app.layout = DashboardLayout(settings).get_layout()
@@ -50,6 +53,10 @@ class Dashboard():
         _self = self
 
         self._paused_processes_retained = copy.copy(self._paused_processes)
+
+
+    def run_app(self):
+        self.app.run()
 
 
     # NOTE Multiple callbacks for single output: https://community.plotly.com/t/multiple-callbacks-for-an-output/51247
@@ -79,13 +86,13 @@ class Dashboard():
         prevent_initial_call=False
     )
     def note_plot_aspect_ratio(plot_size):
-        if _active_plot_manager is None:
+        if _plot_manager is None:
             no_update
 
         plot_width = plot_size[0]
         plot_height = plot_size[1]
         plot_aspect_ratio = plot_width / plot_height
-        _active_plot_manager.refresh_axis_range(plot_aspect_ratio)
+        _plot_manager.refresh_axis_range(plot_aspect_ratio)
         return no_update
         
 
@@ -201,10 +208,10 @@ class Dashboard():
     )
     def refresh_latest_available_model_iteration_display(n_intervals):
         global _model_iteration_plotted
-        if _active_projector is None:
+        if _projector is None:
             return _model_iteration_plotted, _model_iteration_plotted, True, "button-disabled"
 
-        latest_iteration = _active_projector.update_counter
+        latest_iteration = _projector.get_update_count()
         # account for projector automatically assigning the first model itteration
         if latest_iteration == 1:
             _model_iteration_plotted = latest_iteration
@@ -222,8 +229,8 @@ class Dashboard():
         Input('plot-new-model-button', 'n_clicks'),
     )
     def plot_new_model_iteration(n_clicks):
-        latest_iteration = _active_projector.update_counter
-        _active_projector.activate_latest_projector()
+        latest_iteration = _projector.get_update_count()
+        _projector.activate_latest_projector()
 
         global _model_iteration_plotted
         _model_iteration_plotted = latest_iteration
@@ -246,7 +253,7 @@ class Dashboard():
         [Input('model-plot', 'clickData')],
     )
     def select_data_point(click_data):
-        num_selected_points = _active_plot_manager.get_count_selected_points()
+        num_selected_points = _plot_manager.get_count_selected_points()
         if click_data is None:
             if num_selected_points > 1:
                 return num_selected_points, False, False, "button", False, "button", False, "button", no_update
@@ -256,8 +263,8 @@ class Dashboard():
         point = click_data['points'][0]
         point_id = point['id']
 
-        if _active_plot_manager.is_selected_point(point_id):
-            _active_plot_manager.deselect_point(point_id)
+        if _plot_manager.is_selected_point(point_id):
+            _plot_manager.deselect_point(point_id)
             
             plot_update = _self._refresh_plot()
             if num_selected_points <= 1:
@@ -266,7 +273,7 @@ class Dashboard():
 
         x = point['x']
         y = point['y']
-        _active_plot_manager.select_point(point_id, x, y)
+        _plot_manager.select_point(point_id, x, y)
 
         plot_update = _self._refresh_plot()
         return num_selected_points+1, False, False, "button", False, "button", False, "button", plot_update
@@ -292,10 +299,10 @@ class Dashboard():
             point_id = point['id']
             x = point['x']
             y = point['y']
-            _active_plot_manager.select_point(point_id, x, y)
+            _plot_manager.select_point(point_id, x, y)
         
         plot_update = _self._refresh_plot()
-        num_selected_points = _active_plot_manager.get_count_selected_points()
+        num_selected_points = _plot_manager.get_count_selected_points()
         if num_selected_points > 1:
             return num_selected_points, False, False, "button", False, "button", False, "button", plot_update
         else:
@@ -314,7 +321,7 @@ class Dashboard():
         Input('point-selection-clear-button', 'n_clicks'),
     )
     def clear_selected_datapoints(n_clicks):
-        _active_plot_manager.deselect_all()
+        _plot_manager.deselect_all()
         plot_update = _self._refresh_plot()
         return 0, True, True, "button-disabled", True, "button-disabled", True, "button-disabled", plot_update
 
@@ -324,7 +331,7 @@ class Dashboard():
         Input('label-selection-dropdown', 'disabled'),
     )
     def sync_label_selection_dropdown_options(disabled):
-        return _active_plot_manager.get_labels()
+        return _plot_manager.get_labels()
     
 
     @app.callback(
@@ -338,9 +345,9 @@ class Dashboard():
         if triggered_id != 'point-labeling-submit-button.n_clicks':
             return n_clicks, no_update
 
-        _active_plot_manager.update_selected_points_label(new_label)
-        for point_id in _active_plot_manager.get_selected_point_ids():
-            _active_projector.update_label(point_id, new_label)
+        _plot_manager.update_selected_points_label(new_label)
+        for point_id in _plot_manager.get_selected_point_ids():
+            _projector.update_label(point_id, new_label)
         plot_update = _self._refresh_plot()
         return n_clicks, plot_update
     
@@ -351,7 +358,7 @@ class Dashboard():
         Input('selection-highlight-button', 'n_clicks'),
     )
     def highlight_selected(n_clicks):
-        _active_plot_manager.highlight_selected()
+        _plot_manager.highlight_selected()
         plot_update = _self._refresh_plot()
         return n_clicks, plot_update
 
@@ -361,7 +368,7 @@ class Dashboard():
         Input('selection-dehighlight-button', 'n_clicks'),
     )
     def dehighlight_selected(n_clicks):
-        _active_plot_manager.dehighlight_selected()
+        _plot_manager.dehighlight_selected()
         plot_update = _self._refresh_plot()
         return n_clicks, plot_update
     
@@ -371,35 +378,15 @@ class Dashboard():
         Input('clear-all-highlight-button', 'n_clicks'),
     )
     def dehighlight_all(n_clicks):
-        _active_plot_manager.dehighlight_all()
+        _plot_manager.dehighlight_all()
         plot_update = _self._refresh_plot()
         return n_clicks, plot_update
 
 
-    def register_projector(self, projector : Projector | ProjectorContinuesShell):
-        _registered_projectors[projector.id] = projector
-
-    def set_active_projector(self, projector_id : str):
-        global _active_projector_shell
-        global _active_projector
-        global _active_plot_manager
-        global _model_iteration_plotted
-
-        _active_projector_shell = None
-        target_projector = _registered_projectors[projector_id]
-        if isinstance(target_projector, ProjectorContinuesShell):
-            _active_projector_shell =  target_projector
-            target_projector = target_projector.get_projector()
-
-        _active_projector = target_projector
-        _active_plot_manager = target_projector.get_plot_manager()
-        _model_iteration_plotted = target_projector.update_counter
-
-
     def _refresh_plot(self):
-        if _active_plot_manager is None:
+        if _plot_manager is None:
             return no_update
         
         global _plot_figure
-        _plot_figure = _active_plot_manager.get_plot()
+        _plot_figure = _plot_manager.get_plot()
         return _plot_figure

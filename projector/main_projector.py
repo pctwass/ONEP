@@ -18,6 +18,7 @@ from projection_methods.umap_wrapper import UmapWrapper
 from projection_methods.umap_approx_wrapper import UmapApproxWrapper
 from projection_methods.cebra_wrapper import CebraWrapper
 from projection_methods.projection_methods_enum import ProjectionMethodEnum
+from process_management.processing_utils import LOCK_NAME_PROJECTOR_HISTORIC_DATA
 
 
 # currently none of the underlying projection methods (UMAP and CEBRA) support the training of hybrid models, as a result this functionality is disabled (see if statement below)
@@ -45,7 +46,7 @@ class Projector():
     _projecting_data : bool = False
 
     id : str
-    update_counter : int = 0
+    update_count : int = 0
 
 
     def __init__(
@@ -96,9 +97,17 @@ class Projector():
                 raise Exception(f"The projection method {projection_method.name} is not supported.")
 
     # -------------- end of init functions --------------
+            
+    def set_plotter_name(self):
+        self._plot_manager.set_name("test")
+        
 
     def get_plot_manager(self) -> ProjectorPlotManager:
         return self._plot_manager
+    
+
+    def get_update_count(self) -> int:
+        return self.update_count
     
 
     def update_label(self, time_point : float | str, new_label : str):
@@ -117,6 +126,10 @@ class Projector():
 
 
     def project_new_data(self):
+        print("projecting...")
+        # while (self._plot_manager in None):
+        #     print("plot manager is None")
+        #     break
         logger.info('Creating new projections')
         self._projecting_data = True
 
@@ -126,47 +139,58 @@ class Projector():
 
         if self._projection_model_curr is not None:
             projections = self.project_data(data)
+            print(f"Plotting new projections. Taking {len(time_points)} time points.")
             logger.info(f"Plotting new projections. Taking {len(time_points)} time points.")
+          
             self._plot_manager.plot(projections, time_points, labels)
             self._projections_count += len(projections)
 
-        self._locks["projector_write_history"].acquire()    # aquire lock
+        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].acquire()    # aquire lock
         self._recent_data.append(data)
         self._recent_labels.extend(labels)
         self._recent_time_points.extend(time_points)
-        self._locks["projector_write_history"].release()    # release lock
+        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].release()    # release lock
 
         self._projecting_data = False
 
 
-    def project_data(self, data):
-        method_type = self._projection_model_curr.get_method_type()
+    def project_data(self, data, use_latest : bool = False):
+        if use_latest:
+            projection_model = self._projection_model_latest
+        else:
+            projection_model = self._projection_model_curr
+
+        method_type = projection_model.get_method_type()
 
         # estimating the projections for approximate UMAP will fail if there is not historic data (yet), in this case use standard method to obtain projections
-        if method_type.value is ProjectionMethodEnum.UMAP_Approx.value and self.update_counter != 0:
+        if method_type.value is ProjectionMethodEnum.UMAP_Approx.value and self.update_count != 0:
             # only take the data columns of the historic data, leave out the labels and time points
             historic_data = self._historic_df.drop(['labels', 'time points'], axis=1)
-            projections = self._projection_model_curr.produce_projection(data, historic_data)
+            print("projecting.. produicing projection")
+            projections = projection_model.produce_projection(data, historic_data)
         else:
-            projections = self._projection_model_curr.produce_projection(data)
+            print("projecting.. produicing projection")
+            projections = projection_model.produce_projection(data)
 
+        print("projecting.. obtained projection")
         return projections
 
     
     # Data selection priority: update_data parameter -> historic data
     def update_projector(self, update_data: pd.DataFrame = None, labels : Iterable[int] = None, time_points : Iterable[float] = None, projector_update_event : multiprocessing.Event = None):
+        print("updating...")
         start_time = time.time()
         last_time = start_time
 
         #get update data if not provided
         if update_data is None:
-            print(f"Getting data for update. Update: {self.update_counter}")
+            print(f"Getting data for update. Update: {self.update_count}")
 
             print("Waiting for current projection to finish")
-            self._locks["projector_write_history"].acquire()    # aquire lock
+            self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].acquire()    # aquire lock
             historic_data, update_data, labels, time_points = self.get_updated_historic_data()
             self._historic_df = historic_data
-            self._locks["projector_write_history"].release()    # release lock
+            self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].release()    # release lock
 
             # Only update the projection model when there are a minimum number of data points to train on
             if historic_data.empty or len(historic_data) < self._settings.min_training_samples_to_start_projecting:
@@ -190,32 +214,32 @@ class Projector():
             self._projection_model_latest.fit_new(update_data, labels, time_points)
         print("Completted fitting new model")
 
-        # if self._projection_model_curr is None:
-        self.activate_latest_projector()
-        self.update_counter += 1
+        if self._projection_model_curr is None:
+            self.activate_latest_projector()
+        self.update_count += 1
 
         track_time(start_time, last_time, "updating model")
 
 
     def activate_latest_projector(self):
-        self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
-
         print("Waiting for current projection to finish")
-        self._locks["projector_write_history"].acquire()    # aquire lock
+        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].acquire()    # aquire lock
         print(f'Getting historic data for updating plot')
 
         historic_df, data, labels, time_points = self.get_updated_historic_data()
         self._historic_df = historic_df
-        print(f"Get the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
-
-        new_projections = self.project_data(data)
+        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].release()    # release lock
+        
+        print(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
+        new_projections = self.project_data(data, use_latest=True)
+        
         print(f"Plotting new model. Taking {len(time_points)} points")
         try:
             self._plot_manager.update_plot(new_projections, time_points, labels)
+            self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
+            
         except Exception as e:
             print(f"Projector Plotting Exception: {str(e)}")
-
-        self._locks["projector_write_history"].release()    # release lock
 
 
     def get_updated_historic_data(self, clear_recent : bool = True):
@@ -247,21 +271,6 @@ class Projector():
                 print(f"Still waiting for curr projection to finish.. {wait_counter}")
             wait_counter =+ 1
 
-    '''
-    flag projector update to pause projecting threath. This reduces synching issues in the plotter
-    '''
-    def _flag_projector_update(self):
-        if "updating_projector_event" in self._flags:
-            self._processes_pausing_projections += 1
-            self._flags["updating_projector_event"].set()
-
-    def _unflag_projector_update(self):
-        if "updating_projector_event" in self._flags:
-            if self._processes_pausing_projections > 0:
-                self._processes_pausing_projections -= 1
-            if self._processes_pausing_projections < 1:
-                self._flags["updating_projector_event"].clear()
-        
 
 def split_hybrid_data(data, labels, time_points):
     hybrid_df = pack_dataframe(data, labels, time_points)

@@ -6,28 +6,28 @@ from utils.logging import logger
 from projector.main_projector import Projector
 
 
-projector_projecting_expacted_flags = [ "stop", "pause", "updating_projector" ]
+projector_projecting_expacted_flags = [ "stop", "pause"]
 projector_updating_expacted_flags = [ "stop", "pause" ]
 
 
-def create_process_project(projector : Projector, flags : dict[str, multiprocessing.Event]) -> multiprocessing.Process:
+def create_living_process_project(projector : Projector, flags : dict[str, multiprocessing.Event]) -> multiprocessing.Process:
     if not all(flag in flags.keys() for flag in projector_projecting_expacted_flags):
         raise Exception(f"Expected the following flags: {projector_projecting_expacted_flags}, got {flags.keys()}")
     
     process_target = _projecting_loop
     kwargs = dict(projector=projector, flags=flags)
-    subprocess = create_living_process(process_target, kwargs=kwargs)
+    subprocess = create_subprocess(process_target, kwargs=kwargs)
 
     return subprocess
 
 
-def create_process_update_projector(projector : Projector, flags : dict[str, multiprocessing.Event]) -> multiprocessing.Process:
+def create_living_process_update_projector(projector : Projector, flags : dict[str, multiprocessing.Event]) -> multiprocessing.Process:
     if not all(flag in flags.keys() for flag in projector_updating_expacted_flags):
         raise Exception(f"Expected the following flags: {projector_updating_expacted_flags}, got {flags.keys()}")
 
     process_target = _update_projector_loop
     kwargs = dict(projector=projector, flags=flags)
-    subprocess = create_living_process(process_target, kwargs=kwargs)
+    subprocess = create_subprocess(process_target, kwargs=kwargs)
 
     return subprocess
 
@@ -44,9 +44,12 @@ def _projecting_loop(
     while not flags["stop"].is_set():
         now = time.time_ns()
         if now - tlast > dt * 10**9:
-            while flags["pause"].is_set() or flags["updating_projector"].is_set():
+            while flags["pause"].is_set():
                 time.sleep(SLEEPING_DURATION)
-            projector.project_new_data()
+            try:
+                projector.project_new_data()
+            except Exception as e:
+                raise e
             tlast = now
 
 
