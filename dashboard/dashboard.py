@@ -340,8 +340,7 @@ class Dashboard():
 
         _active_plot_manager.update_selected_points_label(new_label)
         for point_id in _active_plot_manager.get_selected_point_ids():
-            time_point = _active_plot_manager.get_point_uid_from_point_id(point_id)
-            _active_projector.update_label(time_point, new_label)
+            _active_projector.update_label(point_id, new_label)
         plot_update = _self._refresh_plot()
         return n_clicks, plot_update
     

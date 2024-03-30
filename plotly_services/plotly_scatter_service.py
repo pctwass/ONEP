@@ -94,122 +94,92 @@ class PlotlyScatterService(PlotlyPlotSerivce):
             ))
     
 
-    def is_scatter_trace_point(self, point_id : str) -> bool:
-        return point_id.startswith(f"{SCATTER_TRACE_UID_PREFIX}_")
-
-
+    '''
+    Get methods
+    '''
     def get_scatter_trace_uid(self, label : str, opacity : float) -> str:
-        return f"{SCATTER_TRACE_UID_PREFIX}_{label}_{opacity}"
+        return f"{SCATTER_TRACE_UID_PREFIX}_{label}_opacity={opacity}"
     
 
-    def get_point_trace_by_id(self, figure : go.Figure, id : float) -> go.Scatter:
-        label, opacity, _ = self._disect_point_id(id)
-
+    def get_trace(self, figure : go.Figure, label : str, opacity : float) -> go.Scatter:
         trace_uid = self.get_scatter_trace_uid(label, opacity) 
-        matching_trace = self.get_trace_by_uid(figure, trace_uid)
+        matching_trace = self.get_trace_by_id(figure, trace_uid)
         if matching_trace is None: 
             return
         return matching_trace
         
     
-    def get_point_trace_and_index_by_id(self, figure : go.Figure, id : float) -> (go.Scatter, int):
-        matching_trace = self.get_point_trace_by_id(figure, id)
+    def get_trace_and_point_index(self, figure : go.Figure, point_id : str, label : str, opacity : float) -> tuple[go.Scatter, int]:
+        matching_trace = self.get_point_trace(figure, label, opacity)
         if matching_trace is None:
             return None, None
 
-        point_index = next((index for index, id_entry in enumerate(matching_trace.ids) if id_entry==id), None)
+        point_index = next((index for index, id_entry in enumerate(matching_trace.ids) if id_entry==point_id), None)
         return matching_trace, point_index
     
 
+    def get_trace_by_point_id(self, figure : go.Figure, point_id : str) -> go.Scatter:
+        matching_trace = next((trace for trace in figure.data if trace.ids is not None and point_id in trace.ids), None)
+        if matching_trace is None: 
+            return
+        return matching_trace
+        
+    
+    def get_trace_and_point_index_by_point_id(self, figure : go.Figure, point_id : str) -> tuple[go.Scatter, int]:
+        matching_trace = self.get_trace_by_point_id(figure, point_id)
+        if matching_trace is None:
+            return None, None
+
+        point_index = next((index for index, id_entry in enumerate(matching_trace.ids) if id_entry==point_id), None)
+        return matching_trace, point_index
+    
+
+    def get_label_by_point_id(self, figure : go.Figure, point_id : str) -> str:
+        matching_trace = self.get_trace_by_point_id(figure, point_id)
+        if matching_trace is None:
+            return None
+        return matching_trace.name
+
+    
     '''
-    Note that point_uids are different from the point ids. The uid of a point is its identifyer outside the scope of the figure, this uid is transformed into the figre specific uid
+    Add scatter methods
     '''
-    def add_scatter(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_uids : Iterable[float], labels : Iterable[str], opacity : Iterable[float] | float = 1.0) -> Iterable[str]:
+    def add_scatter(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[float], labels : Iterable[str], opacity : Iterable[float] | float = 1.0):
         if isinstance(opacity, Iterable):
             select_opacity = True
         elif isinstance(opacity, (float, int)):
             select_opacity = False
         else: raise Exception("opacity should be either of type 'Iterable[float]' or 'float'")
 
-        ids = []
         for i, label in enumerate(labels):
             selected_x = [x[i]]
             selected_y = [y[i]]
-            selected_time_points = [point_uids[i]]
+            selected_time_points = [point_ids[i]]
 
             if select_opacity: 
                 selected_opacity = opacity[i]
             else: selected_opacity = opacity
             
-            ids_subset = self.add_scatter_points(figure, selected_x, selected_y, selected_time_points, label, selected_opacity)
-            if ids_subset is not None:
-                ids = np.append(ids, ids_subset)
+            self.add_scatter_points(figure, selected_x, selected_y, selected_time_points, label, selected_opacity)
+    
 
-        return ids
-    
-    
-    '''
-    Note that point_uid is different from the point id. The uid of a point is its identifyer outside the scope of the figure, this uid is transformed into the figre specific uid
-    '''
-    def add_scatter_point(self, figure : go.Figure, x : float, y : float, point_uid : float, label : str, opacity : float = 1.0) -> str:
-        scatter_point_ids = self.add_scatter_points(figure, [x], [y], [point_uid], label, opacity)
-        if scatter_point_ids is None or len(scatter_point_ids) == 0:
-            return None
-        return scatter_point_ids[0]
+    def add_scatter_point(self, figure : go.Figure, x : float, y : float, point_id : float, label : str, opacity : float = 1.0):
+        self.add_scatter_points(figure, [x], [y], [point_id], label, opacity)
 
     
-    '''
-    Note that point_uids are different from the point ids. The uid of a point is its identifyer outside the scope of the figure, this uid is transformed into the figre specific uid
-    '''
-    def add_scatter_points(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_uids : Iterable[float], label : str, opacity : float = 1.0) -> Iterable[str]:
+    def add_scatter_points(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[float], label : str, opacity : float = 1.0):
         trace_uid = self.get_scatter_trace_uid(label, opacity)
-        target_trace : go.Scatter = self.get_trace_by_uid(figure, trace_uid)
+        target_trace : go.Scatter = self.get_trace_by_id(figure, trace_uid)
         if target_trace is None:
-            label_group_trace = self.get_trace_by_uid(figure, self._get_legend_group_trace_uid(label))
+            label_group_trace = self.get_trace_by_id(figure, self._get_legend_group_trace_uid(label))
             color = label_group_trace.marker.color
             target_trace = self._add_scatter_trace(figure, label, opacity, color)
         
-        if isinstance(target_trace, str):
-            print(f"Warning: {trace_uid} returned as a string.")
-            return []
-
-        ids = self._point_uids_to_point_ids(target_trace.name, target_trace.opacity, point_uids)
-        text = self._get_trace_text(point_uids)
-
+        text = self._get_trace_text(point_ids)
         target_trace.x = np.append(target_trace.x, x).tolist()
         target_trace.y = np.append(target_trace.y, y).tolist()
-        target_trace.ids = np.append(target_trace.ids, ids).tolist()
+        target_trace.ids = np.append(target_trace.ids, point_ids).tolist()
         target_trace.text = np.append(target_trace.text, text).tolist()
-
-        return ids
-
-
-    def update_point_label(self, figure : go.Figure, trace : go.Scatter | str, point_index, new_label) -> str:
-        if isinstance(trace, str):
-            trace = self.get_trace_by_uid(figure, trace)
-        opacity = trace.opacity
-        return self.update_point(figure, trace, point_index, new_label, opacity)
-
-
-    def update_point_opacity(self, figure : go.Figure, trace : go.Scatter | str, point_index, new_opacity) -> str:
-        if isinstance(trace, str):
-            trace = self.get_trace_by_uid(figure, trace)
-        label = trace.name
-        return self.update_point(figure, trace, point_index, label, new_opacity)
-
-
-    def update_point(self, figure : go.Figure, trace : go.Scatter | str, point_index, label, opacity) -> str:
-        if isinstance(trace, str):
-            trace = self.get_trace_by_uid(figure, trace)
-
-        x = trace.x[point_index]
-        y = trace.y[point_index]
-        id = trace.ids[point_index]
-
-        point_uid = self.get_point_uid_from_point_id(id)
-        new_id = self.add_scatter_point(figure, x, y, point_uid, label, opacity)
-        self._remove_point(trace, id)
-        return new_id
 
 
     def _add_scatter_trace(self, figure : go.Figure, label : str, opacity : float, color : str, show_legend : bool = False) -> go.Scatter:
@@ -232,20 +202,32 @@ class PlotlyScatterService(PlotlyPlotSerivce):
             hovertemplate='%{text}<br>' + f'opacity: {opacity}'
         )
         figure.add_trace(trace)
-        return self.get_scatter_trace_uid(figure, trace_uid)
-    
+        return self.get_trace_by_id(figure, trace_uid)
 
-    def _get_point_id(self, label : str, opacity : float, uid : float) -> str:
-        return f"{SCATTER_TRACE_UID_PREFIX}_{label}_{opacity}_{uid}"
+    '''
+    Update methods
+    '''
+    def update_point_label(self, figure : go.Figure, trace : go.Scatter | str, point_index : int, new_label : str):
+        if isinstance(trace, str):
+            trace = self.get_trace_by_id(figure, trace)
+        opacity = trace.opacity
+        self.update_point(figure, trace, point_index, new_label, opacity)
 
 
-    def _point_uids_to_point_ids(self, label : str, opacity : float, uids : Iterable[float]) -> Iterable[str]:
-        return [self._get_point_id(label, opacity, time_point) for time_point in uids]
-    
+    def update_point_opacity(self, figure : go.Figure, trace : go.Scatter | str, point_index : int, new_opacity : float):
+        if isinstance(trace, str):
+            trace = self.get_trace_by_id(figure, trace)
+        label = trace.name
+        self.update_point(figure, trace, point_index, label, new_opacity)
 
-    def _disect_point_id(self, point_id :str) -> (str, float, str):
-        id_sections = point_id.split('_')
-        label = id_sections[1]
-        opacity = id_sections[2]
-        uid = id_sections[3]
-        return label, opacity, uid
+
+    def update_point(self, figure : go.Figure, trace : go.Scatter | str, point_index, label, opacity):
+        if isinstance(trace, str):
+            trace = self.get_trace_by_id(figure, trace)
+
+        x = trace.x[point_index]
+        y = trace.y[point_index]
+        point_id = trace.ids[point_index]
+
+        self._remove_point(trace, point_id)
+        self.add_scatter_point(figure, x, y, point_id, label, opacity)

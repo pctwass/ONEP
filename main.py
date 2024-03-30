@@ -49,6 +49,7 @@ def init_dashboard(settings : DashboardSettings, projector : Projector | Project
     dashboard.set_active_projector(projector.id)
     
     dashboard_thread.start()
+    webbrowser.open('http://127.0.0.1:8007/')
     return dashboard
 
 
@@ -98,7 +99,7 @@ def main() -> int:
         projector.update_projector()
         project_new_data(projector, 100)
         projector.update_projector()
-       # project_new_data(projector, 10)
+        project_new_data(projector, 10)
         project_new_data(projector, 5)
         projector.update_projector()
 

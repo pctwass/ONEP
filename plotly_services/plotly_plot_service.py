@@ -5,16 +5,8 @@ from pyparsing import Iterable
 LEGEND_GROUP_TRACE_UID_PREFIX = "legend_group"
 
 class PlotlyPlotSerivce():
-    def get_point_uid_from_point_id(self, point_id : str) -> str:
-        return point_id.split('_')[-1]
-    
-
-    def get_trace_by_uid(self, figure : go.Figure, uid : str) -> go.Scatter:
+    def get_trace_by_id(self, figure : go.Figure, uid : str) -> go.Scatter:
         return next((trace for trace in figure.data if trace.uid==uid), None)
-    
-    
-    def _get_scatter_point_label(self, point_id : str) -> float:
-        return point_id.split('_')[1]
 
 
     def _add_point(self, trace : go.Trace, point_id : str | float, point_x : float, point_y : float, point_text : str = None):

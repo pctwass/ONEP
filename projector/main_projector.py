@@ -101,19 +101,18 @@ class Projector():
         return self._plot_manager
     
 
-    def update_label(self, time_point : float, new_label : str):
-        # check if the datapoint is still in recent data
-        try:
-            index = self._recent_time_points.index(time_point)
-        except ValueError:
-            index = None
+    def update_label(self, time_point : float | str, new_label : str):
+        if isinstance(time_point, str):
+            time_point = float(time_point)     
 
         label_int_str_map = self._plot_manager._labels_dict
         new_label : int = next(label_int for label_int, label_str in label_int_str_map.items() if label_str == new_label)
 
-        if index is not None:
+        # check if the datapoint is still in recent data otherwise assign the historic df
+        try:
+            index = self._recent_time_points.index(time_point)
             self._recent_labels[index] = new_label
-        else:
+        except ValueError:
             self._historic_df.loc[self._historic_df['time points'] == time_point, "labels"] = new_label
 
 
