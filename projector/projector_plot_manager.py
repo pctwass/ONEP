@@ -111,6 +111,10 @@ class ProjectorPlotManager():
         labels = [self._settings.unclassified_label]
         labels.extend(self._settings.labels)
         return labels
+    
+
+    def get_label_mapping(self) -> dict[int, str]:
+        return self._labels_dict
 
 
     def get_trace_id_by_point_id(self, point_id : float) -> str:
@@ -275,7 +279,6 @@ class ProjectorPlotManager():
         if len(data) != len(time_points):
             raise Exception(f"There should be an equal amount of data points and time points. Data entries: {len(data)}. Time point entries: {len(time_points)}")
 
-        start_time = time.time()
         data = self._resolve_data(data)
         time_points = [str(time_point) for time_point in time_points]
         labels = self._resolve_labels(labels, len(time_points))

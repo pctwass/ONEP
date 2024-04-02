@@ -13,7 +13,7 @@ from processing_utils import *
 class ProcessManager:
     _manager : BaseManager
     _locks : dict[str, multiprocessing.Lock] = {}
-    _flags : dict[str, dict[multiprocessing.Event]] = {}
+    _flags : dict[str, bool] = {}
     _managed_objects : dict[str, any] = {}
     _subprocesses : dict[str, multiprocessing.Process] = {}
 
@@ -24,11 +24,13 @@ class ProcessManager:
         self._manager.start()
         self._create_locks()
         self._create_flags()
-        self._create_managed_objects(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
+        self._create_managed_objects(projector_kwargs, projector_plot_manager_kwargs)
         self._create_subprocesses(dashboard_kwargs["settings"])
 
 
     def _register_proxy_classes(self):
+        BaseManager.register('dict', dict)
+        BaseManager.register('Event', multiprocessing.Event)
         BaseManager.register('Lock', multiprocessing.Lock)
         BaseManager.register("Projector", Projector)
         BaseManager.register("ProjectorPlotManager", ProjectorPlotManager)
@@ -41,17 +43,14 @@ class ProcessManager:
 
     def _create_flags(self):
         # flags are refenced by key string.
-        self._flags["projector_projecting"] = {
-            "stop" : self._init_new_event(),
-            "pause" : self._init_new_event(),
-        }
-        self._flags["projector_updating"] = {
-            "stop" : self._init_new_event(),
-            "pause" : self._init_new_event()
-        }
+        self._flags = self._manager.dict(
+            projecting_stop = self._init_new_event(),
+            projecting_pause = self._init_new_event(),
+            updating_stop = self._init_new_event(),
+            updating_pause = self._init_new_event(),
+        )
 
-
-    def _create_managed_objects(self, projector_kwargs : dict, projector_plot_manager_kwargs : dict, dashboard_kwargs : dict):
+    def _create_managed_objects(self, projector_kwargs : dict, projector_plot_manager_kwargs : dict):
         if projector_plot_manager_kwargs != None and len(projector_plot_manager_kwargs) > 0:
             plot_manager = self._manager.ProjectorPlotManager(**projector_plot_manager_kwargs)
             self._managed_objects["projectorPlotManager"] = plot_manager
@@ -66,19 +65,20 @@ class ProcessManager:
     def _create_subprocesses(self, dashboard_settings : DashboardSettings):
         if "projector" in self._managed_objects:
             projector = self._managed_objects["projector"]
-            self._subprocesses["projector_projecting"] = create_living_process_project(projector, self._flags["projector_projecting"])
-            self._subprocesses["projector_updating"] = create_living_process_update_projector(projector, self._flags["projector_updating"])
+            self._subprocesses["projector_projecting"] = create_living_process_project(projector, self._flags)
+            self._subprocesses["projector_updating"] = create_living_process_update_projector(projector, self._flags)
 
         if "projector" in self._managed_objects and dashboard_settings is not None:
             plot_manager = self._managed_objects["projectorPlotManager"]
             projector = self._managed_objects["projector"]
-            self._subprocesses["dashboard"] = create_process_dashboard(dashboard_settings, projector, plot_manager)
+            self._subprocesses["dashboard"] = create_process_dashboard(dashboard_settings, projector, plot_manager, self._flags)
 
 
     def _init_new_event(self) -> multiprocessing.Event:
-        event = multiprocessing.Event()
-        event.clear()
-        return event
+        # event = self._manager.Event()
+        # event.clear()
+        # return event
+        return False
     
 
     def start_all_processes(self):
@@ -95,23 +95,23 @@ class ProcessManager:
 
 
     def stop_process(self, process_name : str):
-        self._flags[process_name]["stop"].set()
+        self._flags.get(process_name)["stop"].set()
 
 
     def pause_process(self, process_name : str):
-        self._flags[process_name]["pause"].set()
+        self._flags.get(process_name)["pause"].set()
 
 
     def unpause_process(self, process_name : str):
-        self._flags[process_name]["pause"].clear()
+        self._flags.get(process_name)["pause"].clear()
 
 
     def set_flag(self, process_name : str, flag : str):
-        self._flags[process_name][flag].set()
+        self._flags.get(process_name)[flag].set()
 
 
     def clear_flag(self, process_name : str, flag : str):
-        self._flags[process_name][flag].clear()
+        self._flags.get(process_name)[flag].clear()
 
 
     

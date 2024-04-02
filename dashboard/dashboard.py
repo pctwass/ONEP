@@ -1,8 +1,8 @@
 import copy
+import multiprocessing
+import logging
 from dash import Dash, html, dcc, no_update
 from dash_extensions.enrich import Output, DashProxy, Input, MultiplexerTransform, callback_context as ctx
-
-import logging
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
@@ -21,6 +21,7 @@ _plot_figure : go.Figure = no_update
 _projector : Projector = None
 _plot_manager : ProjectorPlotManager = None
 _model_iteration_plotted : str = 0
+_flags : dict[str, dict[str, multiprocessing.Event]] = {}
 
 
 class Dashboard():
@@ -35,7 +36,7 @@ class Dashboard():
     _paused_processes_retained : dict[str, bool]
     
 
-    def __init__(self, settings : DashboardSettings, projector : Projector, plot_manager : ProjectorPlotManager) -> None:
+    def __init__(self, settings : DashboardSettings, projector : Projector, plot_manager : ProjectorPlotManager, flags : dict[str, dict[str, multiprocessing.Event]] = {}) -> None:
         logger = logging.getLogger("werkzeug")
         logger.setLevel(logging.WARNING)
 
@@ -45,6 +46,8 @@ class Dashboard():
         _projector = projector
         global _plot_manager
         _plot_manager = plot_manager
+        global _flags
+        _flags = flags
 
         global _layout
         self.app.layout = DashboardLayout(settings).get_layout()
@@ -115,11 +118,6 @@ class Dashboard():
         Input('application-mode-switch', 'on')
     )
     def toggle_application_mode(toggle_on_state):
-        if _active_projector_shell is None:
-            if toggle_on_state:
-                return "Interactive", "button-disabled", True, "button-disabled", True, True                                            
-            return "Projecting", "button", False, "button", False, False
-
         if toggle_on_state: # implies mode is 'interactive'
             # retain if process is paused
             _self._paused_processes_retained["projecting"] = _self._paused_processes["projecting"]
@@ -128,20 +126,20 @@ class Dashboard():
             # pause processes
             _self._paused_processes["projecting"] = True
             _self._paused_processes["projector-updating"] = True
-            _active_projector_shell.pause_projecting()
-            _active_projector_shell.pause_updating_projector()
+            _self._pause_projecting()
+            _self._pause_projector_updating()
 
             return "Interactive", "button-disabled", True, "button-disabled", True, True                                            
 
         projecting_retained_pause_state = _self._paused_processes_retained["projecting"]
         _self._paused_processes["projecting"] = projecting_retained_pause_state
         if not projecting_retained_pause_state:
-            _active_projector_shell.unpause_projecting()
+            _self._unpause_projecting()
 
         updating_retained_pause_state = _self._paused_processes_retained["projector-updating"]
         _self._paused_processes["projector-updating"] = updating_retained_pause_state
         if not updating_retained_pause_state:
-            _active_projector_shell.unpause_updating_projector()
+            _self._unpause_projector_updating()
 
         return "Projecting", "button", False, "button", False, False
 
@@ -167,15 +165,12 @@ class Dashboard():
         [Input('run-pause-projecting-button', 'n_clicks')],
     )
     def toggle_projecting_pausing(n_clicks):
-        if _active_projector_shell is None:
-            return n_clicks
-
         if _self._paused_processes["projecting"]:
             _self._paused_processes["projecting"] = False
-            _active_projector_shell.unpause_projecting()
+            _self._unpause_projecting()
         else:
             _self._paused_processes["projecting"] = True
-            _active_projector_shell.pause_projecting()
+            _self._pause_projecting()
 
         return n_clicks
     
@@ -185,15 +180,12 @@ class Dashboard():
         [Input('run-pause-updating-button', 'n_clicks')],
     )
     def toggle_updating_projector_pausing(n_clicks):
-        if _active_projector_shell is None:
-            return n_clicks
-
         if _self._paused_processes["projector-updating"]:
             _self._paused_processes["projector-updating"] = False
-            _active_projector_shell.unpause_updating_projector()
+            _self._unpause_projector_updating()
         else:
             _self._paused_processes["projector-updating"] = True
-            _active_projector_shell.pause_updating_projector()
+            _self._pause_projector_updating()
 
         return n_clicks
     
@@ -390,3 +382,26 @@ class Dashboard():
         global _plot_figure
         _plot_figure = _plot_manager.get_plot()
         return _plot_figure
+    
+
+    def _pause_projecting(self):
+        global _flags
+        if "projecting_pause" in _flags.keys():
+            _flags.update({"projecting_pause": True})
+
+    def _pause_projector_updating(self):
+        global _flags
+        if "updating_pause" in _flags.keys():
+            _flags.update({"updating_pause": True})
+
+    def _unpause_projecting(self):
+        global _flags
+        if "projecting_pause" in _flags.keys():
+            _flags.update({"projecting_pause": False})
+
+    def _unpause_projector_updating(self):
+        global _flags
+        if "updating_pause" in _flags.keys():
+            _flags.update({"updating_pause": False})
+
+        

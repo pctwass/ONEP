@@ -114,7 +114,8 @@ class Projector():
         if isinstance(time_point, str):
             time_point = float(time_point)     
 
-        label_int_str_map = self._plot_manager._labels_dict
+        # map labels from string to int
+        label_int_str_map = self._plot_manager.get_label_mapping()
         new_label : int = next(label_int for label_int, label_str in label_int_str_map.items() if label_str == new_label)
 
         # check if the datapoint is still in recent data otherwise assign the historic df
@@ -177,7 +178,7 @@ class Projector():
 
     
     # Data selection priority: update_data parameter -> historic data
-    def update_projector(self, update_data: pd.DataFrame = None, labels : Iterable[int] = None, time_points : Iterable[float] = None, projector_update_event : multiprocessing.Event = None):
+    def update_projector(self, update_data: pd.DataFrame = None, labels : Iterable[int] = None, time_points : Iterable[float] = None):
         print("updating...")
         start_time = time.time()
         last_time = start_time
