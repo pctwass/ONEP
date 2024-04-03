@@ -13,7 +13,7 @@ from processing_utils import *
 class ProcessManager:
     _manager : BaseManager
     _locks : dict[str, multiprocessing.Lock] = {}
-    _flags : dict[str, bool] = {}
+    _flags : dict[str, dict[str, multiprocessing.Event]] = {}
     _managed_objects : dict[str, any] = {}
     _subprocesses : dict[str, multiprocessing.Process] = {}
 
@@ -43,12 +43,22 @@ class ProcessManager:
 
     def _create_flags(self):
         # flags are refenced by key string.
-        self._flags = self._manager.dict(
+        self._flags = dict(
             projecting_stop = self._init_new_event(),
             projecting_pause = self._init_new_event(),
             updating_stop = self._init_new_event(),
             updating_pause = self._init_new_event(),
         )
+        # self._flags = dict(
+        #     projector_projecting = dict(
+        #         stop = self._init_new_event(),
+        #         pause = self._init_new_event(),
+        #     ),
+        #     projector_updating = dict(
+        #         stop = self._init_new_event(),
+        #         pause = self._init_new_event(),
+        #     )
+        # )
 
     def _create_managed_objects(self, projector_kwargs : dict, projector_plot_manager_kwargs : dict):
         if projector_plot_manager_kwargs != None and len(projector_plot_manager_kwargs) > 0:
@@ -75,10 +85,9 @@ class ProcessManager:
 
 
     def _init_new_event(self) -> multiprocessing.Event:
-        # event = self._manager.Event()
-        # event.clear()
-        # return event
-        return False
+        event = self._manager.Event()
+        event.clear()
+        return event
     
 
     def start_all_processes(self):

@@ -386,22 +386,22 @@ class Dashboard():
 
     def _pause_projecting(self):
         global _flags
-        if "projecting_pause" in _flags.keys():
-            _flags.update({"projecting_pause": True})
+        if "projecting_pause" in _flags:
+            _flags["projecting_pause"].set()
 
     def _pause_projector_updating(self):
         global _flags
-        if "updating_pause" in _flags.keys():
-            _flags.update({"updating_pause": True})
+        if "updating_pause" in _flags:
+            _flags["updating_pause"].set()
 
     def _unpause_projecting(self):
         global _flags
-        if "projecting_pause" in _flags.keys():
-            _flags.update({"projecting_pause": False})
+        if "projecting_pause" in _flags:
+            _flags["projecting_pause"].clear()
 
     def _unpause_projector_updating(self):
         global _flags
-        if "updating_pause" in _flags.keys():
-            _flags.update({"updating_pause": False})
+        if "updating_pause" in _flags:
+            _flags["updating_pause"].clear()
 
         
