@@ -24,7 +24,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
     min-training-samples-to-start-projecting = 5
     stream-buffer-size-s = 8
     max-sampling-frequency = 100
-    max-model-update-frequency = 1
+    max-model-update-frequency = 0.1
 
 [plot-settings]
     scatter-point-size = 6

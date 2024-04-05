@@ -55,6 +55,9 @@ class ProjectorPlotManager():
         scatter_plot_settings = self._resolve_scatter_plot_settings()
         self._plot_figure = self._scatter_plot_service.create_figure(scatter_plot_settings)
 
+    def set_name(self, name : str):
+        self.name = name
+
     def _resolve_label_settings(self):
         self._labels_dict[-1] = self._settings.unclassified_label
         for i, label in enumerate(self._settings.labels):
@@ -108,6 +111,10 @@ class ProjectorPlotManager():
         labels = [self._settings.unclassified_label]
         labels.extend(self._settings.labels)
         return labels
+    
+
+    def get_label_mapping(self) -> dict[int, str]:
+        return self._labels_dict
 
 
     def get_trace_id_by_point_id(self, point_id : float) -> str:
@@ -248,7 +255,6 @@ class ProjectorPlotManager():
     def plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
         start_time = time.time()
 
-
         data = self._resolve_data(data)
         time_points = [str(time_point) for time_point in time_points]
         labels = self._resolve_labels(labels, len(time_points))
@@ -273,7 +279,6 @@ class ProjectorPlotManager():
         if len(data) != len(time_points):
             raise Exception(f"There should be an equal amount of data points and time points. Data entries: {len(data)}. Time point entries: {len(time_points)}")
 
-        start_time = time.time()
         data = self._resolve_data(data)
         time_points = [str(time_point) for time_point in time_points]
         labels = self._resolve_labels(labels, len(time_points))
@@ -305,7 +310,7 @@ class ProjectorPlotManager():
 
         if num_new_points > 1:
             self._reduce_opacity()
-        print(f"Plotting update took: {time.time() - start_time}")
+        # print(f"Plotting update took: {time.time() - start_time}")
 
 
     '''
@@ -346,6 +351,7 @@ class ProjectorPlotManager():
 
 
     def _reduce_opacity(self):
+        # print("Reducing opacity")
         for i, (opacity, points) in enumerate(self._points_by_opacity.items()):
             # if there is no opacity threshold defined or the selected opacity level is the lowerst/final opacity level, continue
             opacity_threshold = self._opacity_thresholds[opacity]
@@ -381,7 +387,10 @@ class ProjectorPlotManager():
 
     def _normalize_data(self, data : pd.DataFrame):
         x_span = self._xaxis_edge_values[1] - self._xaxis_edge_values[0]
+        x_mean = (self._xaxis_edge_values[1] + self._xaxis_edge_values[0]) / 2
         y_span = self._yaxis_edge_values[1] - self._yaxis_edge_values[0]
+        y_mean = (self._yaxis_edge_values[1] + self._yaxis_edge_values[0]) / 2
+
         normalized_range_mean = 0.5
 
         if x_span > y_span:
@@ -389,8 +398,8 @@ class ProjectorPlotManager():
         else:
             normalization_factor = 1 / y_span
 
-        data[0] = scale_and_center_pd_series(data[0], normalization_factor, normalized_range_mean)
-        data[1] = scale_and_center_pd_series(data[1], normalization_factor, normalized_range_mean)
+        data[0] = scale_and_center_pd_series(data[0], normalization_factor, normalized_range_mean, x_mean)
+        data[1] = scale_and_center_pd_series(data[1], normalization_factor, normalized_range_mean, y_mean)
 
 
     # label count is only needed when labels is None, this will set the labels to the unclassified label
