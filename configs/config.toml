@@ -23,7 +23,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
     projection-method = 'UMAP_Approx'
     min-training-samples-to-start-projecting = 5
     stream-buffer-size-s = 8
-    max-sampling-frequency = 1
+    max-sampling-frequency = 100
     max-model-update-frequency = 0.1
 
 [plot-settings]

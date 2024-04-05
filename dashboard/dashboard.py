@@ -9,7 +9,6 @@ import plotly.graph_objects as go
 import matplotlib
 matplotlib.use('agg')
 
-from projector.projector_continues_shell import ProjectorContinuesShell
 from projector.main_projector import Projector
 from projector.projector_plot_manager import ProjectorPlotManager
 from dashboard.dahsboard_settings import DashboardSettings

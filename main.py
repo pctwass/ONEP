@@ -8,20 +8,15 @@ from configuration_resolver import ConfigurationResolver
 from fire import Fire
 
 from dashboard.dashboard import Dashboard
-from dashboard.dashboard_thread import DashboardThread
 from dashboard.dahsboard_settings import DashboardSettings
 
 from utils.logging import logger
 from utils.stream_watcher import StreamWatcher
 
-from projector.projector_continues_shell import ProjectorContinuesShell
-from projector.main_projector import Projector
 from projector.projector_settings import ProjectorSettings
-from projector.projector_plot_manager import ProjectorPlotManager
 from projector.plot_settings import PlotSettings
 
 from process_management.process_manager  import ProcessManager
-from process_management.dashboard_processes import create_process_dashboard
 
 
 module_paths = dependency_resolver.reference_module_paths
