@@ -26,7 +26,11 @@ class CebraProjMethod(IProjectionMethod):
         return self._method_type
 
 
-    def fit_new(self, data: pd.DataFrame, labels = None, time_points = None):
+    def fit_new(self, **kwargs):
+        data = kwargs["data"]
+        labels = kwargs["labels"]
+        time_points = kwargs["time_points"]
+        
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
 
@@ -38,7 +42,9 @@ class CebraProjMethod(IProjectionMethod):
         self._projector = new_projector
 
 
-    def project(self, data: pd.DataFrame):
+    def project(self, **kwargs):
+        data = kwargs["data"]
+
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
         return self._projector.transform(data)

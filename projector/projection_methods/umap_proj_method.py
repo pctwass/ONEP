@@ -30,9 +30,9 @@ class UmapProjMethod(IProjectionMethod):
         return self._method_type
 
 
-    def fit_new(self, data: pd.DataFrame, labels = None, time_points = None):
-        # time_points is unused in the umap implementation. Included in function call to adhere to the interface
-        del time_points
+    def fit_new(self, **kwargs):
+        data = kwargs["data"]
+        labels = kwargs["labels"]
 
         n_neighbors = self._n_neighbors
         if data is not None and data.shape[0] <= n_neighbors:
@@ -47,9 +47,8 @@ class UmapProjMethod(IProjectionMethod):
         self._projector = new_reducer
 
     
-    def fit_update(self, data : pd.DataFrame, time_points = None):
-        # time_points is unused in the umap implementation. Included in function call to adhere to the interface
-        del time_points
+    def fit_update(self, **kwargs):
+        data = kwargs["data"]
         
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
@@ -58,7 +57,9 @@ class UmapProjMethod(IProjectionMethod):
         self._projector.update(data)
 
 
-    def project(self, data: pd.DataFrame):
+    def project(self, **kwargs):
+        data = kwargs["data"]
+        
         print('producing embedding')
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
