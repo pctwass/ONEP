@@ -7,13 +7,7 @@ from projector.main_projector import Projector
 from projector.projector_plot_manager import ProjectorPlotManager
 
 
-dashbaord_expacted_flags = [ ]
-
-
 def create_process_dashboard(dashboard_settings : DashboardSettings, projector : Projector, plot_manger : ProjectorPlotManager, flags : dict[str, multiprocessing.Event] = {}) -> multiprocessing.Process:
-    if not all(flag in flags.keys() for flag in dashbaord_expacted_flags):
-        raise Exception(f"Expected the following flags: {dashbaord_expacted_flags}, got {flags.keys()}")
-    
     process_target = _create_and_run_dashboard
     kwargs = dict(
         dashboard_settings=dashboard_settings, 

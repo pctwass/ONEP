@@ -42,23 +42,16 @@ class ProcessManager:
 
 
     def _create_flags(self):
-        # flags are refenced by key string.
         self._flags = dict(
-            projecting_stop = self._init_new_event(),
-            projecting_pause = self._init_new_event(),
-            updating_stop = self._init_new_event(),
-            updating_pause = self._init_new_event(),
+            projector_projecting = dict(
+                stop = self._init_new_event(),
+                pause = self._init_new_event(),
+            ),
+            projector_updating = dict(
+                stop = self._init_new_event(),
+                pause = self._init_new_event(),
+            )
         )
-        # self._flags = dict(
-        #     projector_projecting = dict(
-        #         stop = self._init_new_event(),
-        #         pause = self._init_new_event(),
-        #     ),
-        #     projector_updating = dict(
-        #         stop = self._init_new_event(),
-        #         pause = self._init_new_event(),
-        #     )
-        # )
 
     def _create_managed_objects(self, projector_kwargs : dict, projector_plot_manager_kwargs : dict):
         if projector_plot_manager_kwargs != None and len(projector_plot_manager_kwargs) > 0:
@@ -75,8 +68,8 @@ class ProcessManager:
     def _create_subprocesses(self, dashboard_settings : DashboardSettings):
         if "projector" in self._managed_objects:
             projector = self._managed_objects["projector"]
-            self._subprocesses["projector_projecting"] = create_living_process_project(projector, self._flags)
-            self._subprocesses["projector_updating"] = create_living_process_update_projector(projector, self._flags)
+            self._subprocesses["projector_projecting"] = create_living_process_project(projector, self._flags["projector_projecting"])
+            self._subprocesses["projector_updating"] = create_living_process_update_projector(projector, self._flags["projector_updating"])
 
         if "projector" in self._managed_objects and dashboard_settings is not None:
             plot_manager = self._managed_objects["projectorPlotManager"]

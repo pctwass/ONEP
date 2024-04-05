@@ -128,9 +128,7 @@ class Projector():
 
     def project_new_data(self):
         print("projecting...")
-        # while (self._plot_manager in None):
-        #     print("plot manager is None")
-        #     break
+       
         logger.info('Creating new projections')
         self._projecting_data = True
 
@@ -146,11 +144,11 @@ class Projector():
             self._plot_manager.plot(projections, time_points, labels)
             self._projections_count += len(projections)
 
-        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].acquire()    # aquire lock
+        self.aquire_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
         self._recent_data.append(data)
         self._recent_labels.extend(labels)
         self._recent_time_points.extend(time_points)
-        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].release()    # release lock
+        self.release_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
 
         self._projecting_data = False
 
@@ -188,10 +186,10 @@ class Projector():
             print(f"Getting data for update. Update: {self.update_count}")
 
             print("Waiting for current projection to finish")
-            self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].acquire()    # aquire lock
+            self.aquire_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
             historic_data, update_data, labels, time_points = self.get_updated_historic_data()
             self._historic_df = historic_data
-            self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].release()    # release lock
+            self.release_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
 
             # Only update the projection model when there are a minimum number of data points to train on
             if historic_data.empty or len(historic_data) < self._settings.min_training_samples_to_start_projecting:
@@ -224,12 +222,12 @@ class Projector():
 
     def activate_latest_projector(self):
         print("Waiting for current projection to finish")
-        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].acquire()    # aquire lock
+        self.aquire_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
         print(f'Getting historic data for updating plot')
 
         historic_df, data, labels, time_points = self.get_updated_historic_data()
         self._historic_df = historic_df
-        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA].release()    # release lock
+        self.release_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
         
         print(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
         new_projections = self.project_data(data, use_latest=True)
@@ -271,6 +269,15 @@ class Projector():
             if wait_counter % 1000 == 0:
                 print(f"Still waiting for curr projection to finish.. {wait_counter}")
             wait_counter =+ 1
+
+
+    def aquire_lock(self, lock_name : str):
+        if lock_name in self._locks:
+            self._locks[lock_name].acquire()
+
+    def release_lock(self, lock_name : str):
+        if lock_name in self._locks:
+            self._locks[lock_name].release()
 
 
 def split_hybrid_data(data, labels, time_points):

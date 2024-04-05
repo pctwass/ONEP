@@ -21,6 +21,7 @@ from projector.projector_plot_manager import ProjectorPlotManager
 from projector.plot_settings import PlotSettings
 
 from process_management.process_manager  import ProcessManager
+from process_management.dashboard_processes import create_process_dashboard
 
 
 module_paths = dependency_resolver.reference_module_paths
@@ -30,7 +31,7 @@ config_folder: str = os.path.join(os.getcwd(), "configs")
 config_path: str = os.path.join(config_folder, config_file_name)
 
 stream_watcher : StreamWatcher
-projector_shell : ProjectorContinuesShell
+process_manager : ProcessManager
 configuration_resolver = ConfigurationResolver(config_path)
 
 
@@ -39,44 +40,29 @@ def init_logger():
     logger.addHandler(logging.StreamHandler())
 
 
-def init_dashboard(settings : DashboardSettings, projector : Projector | ProjectorContinuesShell) -> Dashboard:
-    dashboard_host = configuration_resolver.get('dashboard-host')
-    dashboard_port = configuration_resolver.get('dashboard-port')
-    
-    dashboard_thread = DashboardThread(settings, host=dashboard_host, port=dashboard_port) 
-    dashboard = dashboard_thread.dashboard
-
-    dashboard.register_projector(projector)
-    dashboard.set_active_projector(projector.id)
-    
-    dashboard_thread.start()
-    webbrowser.open('http://127.0.0.1:8007/')
-    return dashboard
-
-
 def launch() -> int:
     projector_settings, dashboard_settings = get_settings_from_config()
-    projection_method = projector_settings.projection_method
-    stream_name = configuration_resolver.get('data-stream-name')
+    in_stream_name = configuration_resolver.get('data-stream-name')
+    projector_kwargs = get_projector_kwargs(projector_settings, in_stream_name)
+    projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings.plot_settings)
+    dashboard_kwargs = get_dashboard_kwargs(dashboard_settings)
 
-    global projector_shell
-    logger.info('Initiating embedding projector')
-    projector_shell = ProjectorContinuesShell(projection_method, stream_name, projector_settings)
-    init_dashboard(dashboard_settings, projector_shell)
+    process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
 
+    process_manager.start_process("dashboard")
     webbrowser.open('http://127.0.0.1:8007/')
     return 0
 
 
 def start() -> int:
-    projector_shell.start_projecting()
-    projector_shell.start_updating_projector()
+    process_manager.start_process("projector_projecting")
+    process_manager.start_process("projector_updating")
     return 0
 
 
 def stop() -> int:
-    projector_shell.stop_projecting()
-    projector_shell.stop_updating_projector()
+    process_manager.stop_process("projector_projecting")
+    process_manager.stop_process("projector_updating")
     return 0
 
 
@@ -90,16 +76,16 @@ def main() -> int:
     projector_kwargs = get_projector_kwargs(projector_settings, in_stream_name)
     projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings.plot_settings)
     dashboard_kwargs = get_dashboard_kwargs(dashboard_settings)
-
+    process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
+    
     if mode == 'sequential':
-        plot_manager = ProjectorPlotManager(**projector_plot_manager_kwargs)
-        projector_kwargs["plot_manager"] = plot_manager
-        projector = Projector(**projector_kwargs)
-        init_dashboard(dashboard_settings, projector)
+        projector = process_manager._managed_objects["projector"]
+        process_manager.start_process("dashboard")
+        webbrowser.open('http://127.0.0.1:8007/')
 
         project_new_data(projector, 10)
         projector.update_projector()
-        project_new_data(projector, 100)
+        project_new_data(projector, 10)
         projector.update_projector()
         project_new_data(projector, 10)
         project_new_data(projector, 5)
@@ -109,13 +95,8 @@ def main() -> int:
 
 
     elif mode == 'continuous':
-        process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
-        #init_dashboard(dashboard_settings, projector_shell)
-
         process_manager.start_all_processes()
         webbrowser.open('http://127.0.0.1:8007/')
-        # process_manager.start_process("projector_projecting")
-        # process_manager.start_process("projector_updating")
         time.sleep(6000)
         process_manager.stop_process("projector_projecting")
         process_manager.stop_process("projector_updating")
@@ -152,7 +133,6 @@ def get_dashboard_kwargs(dashboard_settings : DashboardSettings) -> dict[str, an
     return dict(
         settings = dashboard_settings
     )
-
 
 
 if __name__ == "__main__":

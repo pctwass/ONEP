@@ -31,10 +31,10 @@ def _projecting_loop(
     dt = 1 / freq_hz
     tlast = time.time_ns()
 
-    while not flags["projecting_stop"].is_set():
+    while not flags["stop"].is_set():
         now = time.time_ns()
         if now - tlast > dt * 10**9:
-            while flags["projecting_pause"].is_set():
+            while flags["pause"].is_set():
                 time.sleep(SLEEPING_DURATION)
             try:
                 projector.project_new_data()
@@ -52,10 +52,10 @@ def _update_projector_loop(
     dt = 1 / freq_hz
     tlast = time.time_ns()
 
-    while not flags["updating_stop"].is_set():
+    while not flags["stop"].is_set():
         now = time.time_ns()
         if now - tlast > dt * 10**9:
-            while flags["updating_pause"].is_set():
+            while flags["pause"].is_set():
                 time.sleep(SLEEPING_DURATION)
             try:
                 projector.update_projector()
