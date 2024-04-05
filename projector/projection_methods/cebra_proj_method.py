@@ -7,7 +7,7 @@ from projection_methods.projection_methods_enum import ProjectionMethodEnum
 from projection_methods.projection_method_interface import IProjectionMethod
 from projection_methods.submodules.CEBRA.cebra import CEBRA
 
-class CebraWrapper(IProjectionMethod):
+class CebraProjMethod(IProjectionMethod):
     _projector : CEBRA
     _method_type = ProjectionMethodEnum.CEBRA
     _hyperparameters : dict[str, any] = {}
@@ -38,7 +38,7 @@ class CebraWrapper(IProjectionMethod):
         self._projector = new_projector
 
 
-    def produce_projection(self, data: pd.DataFrame):
+    def project(self, data: pd.DataFrame):
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
         return self._projector.transform(data)

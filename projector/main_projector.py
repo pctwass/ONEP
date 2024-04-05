@@ -14,9 +14,9 @@ from projector_settings import ProjectorSettings
 from projector_plot_manager import ProjectorPlotManager
 from projection_methods.projection_methods_enum import ProjectionMethodEnum
 from projection_methods.projection_method_interface import IProjectionMethod
-from projection_methods.umap_wrapper import UmapWrapper
-from projection_methods.umap_approx_wrapper import UmapApproxWrapper
-from projection_methods.cebra_wrapper import CebraWrapper
+from projector.projection_methods.umap_proj_method import UmapProjMethod
+from projector.projection_methods.approx_umap_proj_method import ApproxUmapProjMethod
+from projector.projection_methods.cebra_proj_method import CebraProjMethod
 from projection_methods.projection_methods_enum import ProjectionMethodEnum
 from process_management.processing_utils import LOCK_NAME_PROJECTOR_HISTORIC_DATA
 
@@ -88,11 +88,11 @@ class Projector():
 
         match projection_method.value:
             case ProjectionMethodEnum.UMAP.value:
-                self._projection_model_latest = UmapWrapper(self._settings.hyperparameters)
+                self._projection_model_latest = UmapProjMethod(self._settings.hyperparameters)
             case ProjectionMethodEnum.UMAP_Approx.value:
-                self._projection_model_latest = UmapApproxWrapper(self._settings.hyperparameters)
+                self._projection_model_latest = ApproxUmapProjMethod(self._settings.hyperparameters)
             case ProjectionMethodEnum.CEBRA.value:
-                self._projection_model_latest = CebraWrapper(self._settings.hyperparameters)
+                self._projection_model_latest = CebraProjMethod(self._settings.hyperparameters)
             case _: 
                 raise Exception(f"The projection method {projection_method.name} is not supported.")
 
@@ -159,19 +159,16 @@ class Projector():
         else:
             projection_model = self._projection_model_curr
 
-        method_type = projection_model.get_method_type()
+        historic_data = self._historic_df
+        if historic_data is not None:
+            historic_data = historic_data.drop(['labels', 'time points'], axis=1)
 
-        # estimating the projections for approximate UMAP will fail if there is not historic data (yet), in this case use standard method to obtain projections
-        if method_type.value is ProjectionMethodEnum.UMAP_Approx.value and self.update_count != 0:
-            # only take the data columns of the historic data, leave out the labels and time points
-            historic_data = self._historic_df.drop(['labels', 'time points'], axis=1)
-            print("projecting.. produicing projection")
-            projections = projection_model.produce_projection(data, historic_data)
-        else:
-            print("projecting.. produicing projection")
-            projections = projection_model.produce_projection(data)
+        projection_kwargs = dict(
+            data = data,
+            historic_data = historic_data
+        )
 
-        print("projecting.. obtained projection")
+        projections = projection_model.project(**projection_kwargs)
         return projections
 
     

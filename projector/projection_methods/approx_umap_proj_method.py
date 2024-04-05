@@ -9,7 +9,7 @@ from utils.logging import logger
 from projection_methods.projection_methods_enum import ProjectionMethodEnum
 from projection_methods.projection_method_interface import IProjectionMethod
 
-class UmapApproxWrapper(IProjectionMethod):
+class ApproxUmapProjMethod(IProjectionMethod):
     _method_type = ProjectionMethodEnum.UMAP_Approx
     
     _projector : umap.UMAP
@@ -67,11 +67,11 @@ class UmapApproxWrapper(IProjectionMethod):
         self._knn.fit(data)
 
 
-    def produce_projection(self, new_data: pd.DataFrame, existing_data: pd.DataFrame = None):
-        if existing_data is None:
-            return self._compute_projection(new_data)
+    def project(self, data: pd.DataFrame, historic_data: pd.DataFrame = None):
+        if historic_data is None:
+            return self._compute_projection(data)
         else:
-            return self._approximate_projections(new_data, existing_data)
+            return self._approximate_projections(data, historic_data)
     
 
     def _compute_projection(self, data: pd.DataFrame):

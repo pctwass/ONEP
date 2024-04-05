@@ -7,7 +7,7 @@ from utils.logging import logger
 from projection_methods.projection_methods_enum import ProjectionMethodEnum
 from projection_methods.projection_method_interface import IProjectionMethod
 
-class UmapWrapper(IProjectionMethod):
+class UmapProjMethod(IProjectionMethod):
     _method_type = ProjectionMethodEnum.UMAP
     
     _projector : umap.UMAP
@@ -58,7 +58,7 @@ class UmapWrapper(IProjectionMethod):
         self._projector.update(data)
 
 
-    def produce_projection(self, data: pd.DataFrame):
+    def project(self, data: pd.DataFrame):
         print('producing embedding')
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
