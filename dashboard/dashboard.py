@@ -9,7 +9,6 @@ import plotly.graph_objects as go
 import matplotlib
 matplotlib.use('agg')
 
-from projector.projector_continues_shell import ProjectorContinuesShell
 from projector.main_projector import Projector
 from projector.projector_plot_manager import ProjectorPlotManager
 from dashboard.dahsboard_settings import DashboardSettings
@@ -386,22 +385,22 @@ class Dashboard():
 
     def _pause_projecting(self):
         global _flags
-        if "projecting_pause" in _flags.keys():
-            _flags.update({"projecting_pause": True})
+        if "projector_projecting" in _flags and "pause" in _flags["projector_projecting"]:
+            _flags["projector_projecting"]["pause"].set()
 
     def _pause_projector_updating(self):
         global _flags
-        if "updating_pause" in _flags.keys():
-            _flags.update({"updating_pause": True})
+        if "projector_updating" in _flags and "pause" in _flags["projector_updating"]:
+            _flags["projector_updating"]["pause"].set()
 
     def _unpause_projecting(self):
         global _flags
-        if "projecting_pause" in _flags.keys():
-            _flags.update({"projecting_pause": False})
+        if "projector_projecting" in _flags and "pause" in _flags["projector_projecting"]:
+            _flags["projector_projecting"]["pause"].clear()
 
     def _unpause_projector_updating(self):
         global _flags
-        if "updating_pause" in _flags.keys():
-            _flags.update({"updating_pause": False})
+        if "projector_updating" in _flags and "pause" in _flags["projector_updating"]:
+            _flags["projector_updating"]["pause"].clear()
 
         

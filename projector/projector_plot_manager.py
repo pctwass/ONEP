@@ -387,7 +387,10 @@ class ProjectorPlotManager():
 
     def _normalize_data(self, data : pd.DataFrame):
         x_span = self._xaxis_edge_values[1] - self._xaxis_edge_values[0]
+        x_mean = (self._xaxis_edge_values[1] + self._xaxis_edge_values[0]) / 2
         y_span = self._yaxis_edge_values[1] - self._yaxis_edge_values[0]
+        y_mean = (self._yaxis_edge_values[1] + self._yaxis_edge_values[0]) / 2
+
         normalized_range_mean = 0.5
 
         if x_span > y_span:
@@ -395,8 +398,8 @@ class ProjectorPlotManager():
         else:
             normalization_factor = 1 / y_span
 
-        data[0] = scale_and_center_pd_series(data[0], normalization_factor, normalized_range_mean)
-        data[1] = scale_and_center_pd_series(data[1], normalization_factor, normalized_range_mean)
+        data[0] = scale_and_center_pd_series(data[0], normalization_factor, normalized_range_mean, x_mean)
+        data[1] = scale_and_center_pd_series(data[1], normalization_factor, normalized_range_mean, y_mean)
 
 
     # label count is only needed when labels is None, this will set the labels to the unclassified label
