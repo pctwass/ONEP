@@ -1,3 +1,9 @@
 [submodule "projector/projection_method/submodules/CEBRA"]
 	path = projector/projection_method/submodules/CEBRA
 	url = https://github.com/AdaptiveMotorControlLab/CEBRA.git
+[submodule "projector/projection_methods/submodules/projector/projection_method/submodules/CEBRA"]
+	path = projector/projection_methods/submodules/projector/projection_method/submodules/CEBRA
+	url = https://github.com/AdaptiveMotorControlLab/CEBRA.git
+[submodule "projector/projection_methods/submodules/CEBRA"]
+	path = projector/projection_methods/submodules/CEBRA
+	url = https://github.com/AdaptiveMotorControlLab/CEBRA.git
