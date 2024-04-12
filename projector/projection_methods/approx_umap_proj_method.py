@@ -34,9 +34,9 @@ class ApproxUmapProjMethod(IProjectionMethod):
         return self._method_type
 
 
-    def fit_new(self, data: pd.DataFrame, labels = None, time_points = None):
-        # time_points is unused in the umap implementation. Included in function call to adhere to the interface
-        del time_points
+    def fit_new(self, **kwargs):
+        data = kwargs["data"]
+        labels = kwargs["labels"]
 
         n_neighbors = self._n_neighbors
         if data is not None and data.shape[0] <= n_neighbors:
@@ -55,10 +55,9 @@ class ApproxUmapProjMethod(IProjectionMethod):
         self._knn = knn
 
     
-    def fit_update(self, data : pd.DataFrame, time_points = None):
-        # time_points is unused in the umap implementation. Included in function call to adhere to the interface
-        del time_points
-        
+    def fit_update(self, **kwargs):
+        data = kwargs["data"]
+
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
 
@@ -67,11 +66,14 @@ class ApproxUmapProjMethod(IProjectionMethod):
         self._knn.fit(data)
 
 
-    def project(self, data: pd.DataFrame, historic_data: pd.DataFrame = None):
-        if historic_data is None:
+    def project(self, **kwargs):
+        data = kwargs["data"]
+        existing_data = kwargs["existing_data"]
+
+        if existing_data is None:
             return self._compute_projection(data)
         else:
-            return self._approximate_projections(data, historic_data)
+            return self._approximate_projections(data, existing_data)
     
 
     def _compute_projection(self, data: pd.DataFrame):

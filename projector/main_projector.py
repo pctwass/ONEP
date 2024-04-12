@@ -163,12 +163,7 @@ class Projector():
         if historic_data is not None:
             historic_data = historic_data.drop(['labels', 'time points'], axis=1)
 
-        projection_kwargs = dict(
-            data = data,
-            historic_data = historic_data
-        )
-
-        projections = projection_model.project(**projection_kwargs)
+        projections = projection_model.project(data=data, existing_data=historic_data)
         return projections
 
     
@@ -201,13 +196,13 @@ class Projector():
             # BUG fit new fails when the data is split in such a way that there is only one labeled data entry
             labeled_df, unlabeled_df = split_hybrid_data(update_data, labels, time_points)
             labeled_data, labeled_labels, _ = unpack_dataframe(labeled_df)
-            self._projection_model_latest.fit_new(labeled_data, labeled_labels)
+            self._projection_model_latest.fit_new(data=labeled_data, labels=labeled_labels, time_points=time_points)
             unlabeled_data, _, unlabeled_time_points = unpack_dataframe(unlabeled_df)
             self._projection_model_latest.fit_update(unlabeled_data, unlabeled_time_points)
         elif contains_unlabeled_data:
-            self._projection_model_latest.fit_new(update_data, None, time_points)
+            self._projection_model_latest.fit_new(data=update_data, labels=None, time_points=time_points)
         else:
-            self._projection_model_latest.fit_new(update_data, labels, time_points)
+            self._projection_model_latest.fit_new(data=update_data, labels=labels, time_points=time_points)
         print("Completted fitting new model")
 
         if self._projection_model_curr is None:

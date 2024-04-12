@@ -33,5 +33,5 @@ class IProjectionMethod(metaclass=abc.ABCMeta):
 
 
     # Produces projections by transforming the provided data using the projection model of the wrapper class.
-    def project(self, data: pd.DataFrame):
+    def project(self, data: pd.DataFrame, existing_data: pd.DataFrame):
         pass
