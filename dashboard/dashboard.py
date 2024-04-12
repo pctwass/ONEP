@@ -220,12 +220,14 @@ class Dashboard():
         Input('plot-new-model-button', 'n_clicks'),
     )
     def plot_new_model_iteration(n_clicks):
+        global _model_iteration_plotted
         latest_iteration = _projector.get_update_count()
+        print(f"latest itteration: {latest_iteration}. Current itteration: {_model_iteration_plotted}")
         _projector.activate_latest_projector()
 
-        global _model_iteration_plotted
         _model_iteration_plotted = latest_iteration
 
+        print("refreshign plot")
         plot_update = _self._refresh_plot()
         return True, "button-disabled", plot_update
 
