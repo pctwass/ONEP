@@ -163,6 +163,8 @@ class Projector():
         if historic_data is not None:
             historic_data = historic_data.drop(['labels', 'time points'], axis=1)
 
+        if use_latest:
+            print(f"len data: {len(data)}")
         projections = projection_model.project(data=data, existing_data=historic_data)
         return projections
 
