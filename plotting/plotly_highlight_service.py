@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 
-from plotly_services.scatter_plot_settings import ScatterPlotSettings
-from plotly_services.plotly_plot_service import PlotlyPlotSerivce
+from scatter_plot_settings import ScatterPlotSettings
+from plotly_plot_service import PlotlyPlotSerivce
 
 HIGHLIGHT_TRACE_ID_PREFIX = 'scatter_highlight'
 HIGHLIGHT_POINT_PREDIX = "highlight_"

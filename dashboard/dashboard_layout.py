@@ -6,9 +6,11 @@ from dashboard.dahsboard_settings import DashboardSettings
 
 class DashboardLayout():
     _settings : DashboardSettings
+    _graph_refresh_interval : float
     
     def __init__(self, settings : DashboardSettings):
         self._settings = settings
+        self._graph_refresh_interval = settings.graph_refresh_frequency / 1 * 1000 # from frequency to interval duration in milisecond.
 
     def get_layout(self):
         return dbc.Container([
@@ -19,7 +21,7 @@ class DashboardLayout():
 
             html.Div(className="graph-column", id="graph-column",
                 children=[
-                    dcc.Interval(id="refresh-graph-interval", disabled=False, interval=self._settings.graph_refresh_rate_per_ms),
+                    dcc.Interval(id="refresh-graph-interval", disabled=False, interval=self._graph_refresh_interval),
                     dcc.Graph(className='graph', id='model-plot', figure={}, config={'staticPlot': False}),
                     html.Div(id="plot-size-hidden-div", style={'display': 'none'})
                 ]

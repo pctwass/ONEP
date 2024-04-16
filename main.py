@@ -18,6 +18,9 @@ from projector.plot_settings import PlotSettings
 
 from process_management.process_manager  import ProcessManager
 
+from projector.main_projector import Projector
+from projector.projector_plot_manager import ProjectorPlotManager
+
 
 module_paths = dependency_resolver.reference_module_paths
 
@@ -74,13 +77,16 @@ def main() -> int:
     process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
     
     if mode == 'sequential':
+        # plot_manager = ProjectorPlotManager(**projector_plot_manager_kwargs)
+        # projector_kwargs["plot_manager"] = plot_manager
+        # projector = Projector(**projector_kwargs)
         projector = process_manager._managed_objects["projector"]
         process_manager.start_process("dashboard")
         webbrowser.open('http://127.0.0.1:8007/')
 
-        project_new_data(projector, 10)
+        project_new_data(projector, 20)
         projector.update_projector()
-        project_new_data(projector, 10)
+        project_new_data(projector, 100)
         projector.update_projector()
         project_new_data(projector, 10)
         project_new_data(projector, 5)

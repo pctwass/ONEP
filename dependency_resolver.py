@@ -4,7 +4,7 @@ import sys
 reference_module_paths = [
     './',  
     './utils',
-    './plotly_services',
+    './plotting',
     './projector',  
     './process_management',  
     './projector/projection_methods/submodules/CEBRA', # CEBRA submodule

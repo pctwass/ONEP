@@ -2,10 +2,10 @@ import plotly.graph_objects as go
 import numpy as np
 from pyparsing import Iterable
 
-from plotly_services.scatter_plot_settings import ScatterPlotSettings
-from plotly_services.plotly_plot_service import PlotlyPlotSerivce
-from plotly_services.plotly_selection_service import PlotlySelectionService
-from plotly_services.plotly_highlight_service import PlotlyHighlightService
+from scatter_plot_settings import ScatterPlotSettings
+from plotly_plot_service import PlotlyPlotSerivce
+from plotly_selection_service import PlotlySelectionService
+from plotly_highlight_service import PlotlyHighlightService
 
 SCATTER_TRACE_UID_PREFIX = 'scatter'
 
