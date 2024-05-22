@@ -11,10 +11,11 @@ from utils.logging import logger
 from utils.dataframe_utils import *
 from utils.Iterable_utils import *
 from plot_settings import PlotSettings
-from plotly_services.plotly_scatter_service import PlotlyScatterService
-from plotly_services.plotly_selection_service import PlotlySelectionService
-from plotly_services.plotly_highlight_service import PlotlyHighlightService
-from plotly_services.scatter_plot_settings import ScatterPlotSettings
+from plotting.plotly_scatter_service import PlotlyScatterService
+from plotting.plotly_selection_service import PlotlySelectionService
+from plotting.plotly_highlight_service import PlotlyHighlightService
+from plotting.scatter_plot_settings import ScatterPlotSettings
+from plotting.opacity_bookkeeping_service  import OpacityBookkeepingService
 
 
 class ProjectorPlotManager():
@@ -24,6 +25,7 @@ class ProjectorPlotManager():
     _scatter_plot_service : PlotlyScatterService
     _selection_plot_service : PlotlySelectionService
     _highlight_plot_service : PlotlyHighlightService
+    _opacity_bookkeeping_service : OpacityBookkeepingService
 
     _labels_dict : dict[int, str] = {}
     _color_map : dict[str, str] = {}
@@ -51,6 +53,12 @@ class ProjectorPlotManager():
         self._scatter_plot_service = PlotlyScatterService()
         self._selection_plot_service = PlotlySelectionService()
         self._highlight_plot_service = PlotlyHighlightService()
+        self._opacity_bookkeeping_service = OpacityBookkeepingService(
+            self._scatter_plot_service,
+            self._opacity_thresholds,
+            self._init_opacity,
+            self._points_by_opacity,
+        )
 
         scatter_plot_settings = self._resolve_scatter_plot_settings()
         self._plot_figure = self._scatter_plot_service.create_figure(scatter_plot_settings)
@@ -269,9 +277,7 @@ class ProjectorPlotManager():
         )
 
         self._points.update({point_id: label for point_id, label in zip(time_points, labels)})
-        self._expand_opacity_dict(time_points)
-        self._reduce_opacity()
-
+        self._opacity_bookkeeping_service.update_opacity_dict_and_plot(self._plot_figure, time_points)
         print(f"Plotting projection took: {time.time() - start_time}")
 
 
@@ -287,7 +293,7 @@ class ProjectorPlotManager():
         num_new_points = len(data) - self._get_num_plotted_points()
         if num_new_points > 1:
             new_point_ids = time_points[:num_new_points] 
-            self._expand_opacity_dict(new_point_ids, self._init_opacity)
+            self._opacity_bookkeeping_service.update_opacity_dict(new_point_ids)
 
         self._update_axis_ranges(data)
         scatter_plot_settings = self._resolve_scatter_plot_settings()
@@ -308,8 +314,6 @@ class ProjectorPlotManager():
         self._update_selection(new_figure, data, time_points)
         self._plot_figure = new_figure
 
-        if num_new_points > 1:
-            self._reduce_opacity()
         # print(f"Plotting update took: {time.time() - start_time}")
 
 

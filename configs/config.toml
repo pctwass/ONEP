@@ -23,7 +23,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
     projection-method = 'UMAP_Approx'
     min-training-samples-to-start-projecting = 5
     stream-buffer-size-s = 8
-    max-sampling-frequency = 10
+    max-sampling-frequency = 100
     max-model-update-frequency = 0.1
 
 [plot-settings]
@@ -57,5 +57,5 @@ hyperparameter-config-folder = './configs/hyperparameters'
         end = 1.2
 
 [dashboard-settings]
-    graph-refresh-rate-per-ms = 1000
+    graph-refresh-frequency = 1
     refresh-after-selection = true

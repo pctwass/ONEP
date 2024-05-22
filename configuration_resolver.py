@@ -94,7 +94,7 @@ class ConfigurationResolver:
         dashboard_config_section = self._config.get('dashboard-settings')
 
         dashboar_settings = DashboardSettings()
-        dashboar_settings.graph_refresh_rate_per_ms = dashboard_config_section.get('graph-refresh-rate-per-ms')
+        dashboar_settings.graph_refresh_frequency = dashboard_config_section.get('graph-refresh-frequency')
         dashboar_settings.host = self._config.get('dashboard-host')
         dashboar_settings.port = self._config.get('dashboard-port')
 
