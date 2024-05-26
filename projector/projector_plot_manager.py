@@ -282,6 +282,8 @@ class ProjectorPlotManager():
 
 
     def update_plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
+        print("Updating plot..")
+        start_time = time.time()
         if len(data) != len(time_points):
             raise Exception(f"There should be an equal amount of data points and time points. Data entries: {len(data)}. Time point entries: {len(time_points)}")
 
@@ -314,7 +316,7 @@ class ProjectorPlotManager():
         self._update_selection(new_figure, data, time_points)
         self._plot_figure = new_figure
 
-        # print(f"Plotting update took: {time.time() - start_time}")
+        print(f"Plotting update took: {time.time() - start_time}")
 
 
     '''

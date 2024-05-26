@@ -1,3 +1,4 @@
+import time
 import plotly.graph_objects as go
 import numpy as np
 from pyparsing import Iterable
@@ -20,6 +21,10 @@ class PlotlyScatterService(PlotlyPlotSerivce):
 
 
     def create_figure(self, plot_settings : ScatterPlotSettings, x : Iterable = None, y : Iterable = None, ids : Iterable = None, labels : Iterable = None, opacity_values : Iterable[float] | float = None) -> go.Figure:
+        start_time = time.time()
+        time_stamp = start_time
+        print("Creating figure")
+        
         label_set = plot_settings.labels
         opacity_set = [float(opacity) for opacity in plot_settings.opacity_set]
 
@@ -28,11 +33,22 @@ class PlotlyScatterService(PlotlyPlotSerivce):
                 opacity_values = plot_settings.initial_opacity
             else: opacity_values = 1.0
         
+        print(f"Prep done: {time.time() - time_stamp}")
+        time_stamp = time.time()
+
         figure = go.Figure()
         self._set_layout(figure, plot_settings)
+        print(f"Init figure: {time.time() - time_stamp}")
+        time_stamp = time.time()
         self._set_legend_groups(figure, label_set, plot_settings.color_map, plot_settings.initial_opacity, x, y)
+        print(f"Set legend groups: {time.time() - time_stamp}")
+        time_stamp = time.time()
         self._highlight_service.init_highlight_traces(figure, plot_settings)
+        print(f"Init highlight trace: {time.time() - time_stamp}")
+        time_stamp = time.time()
         self._selection_service.init_selection_trace(figure, plot_settings)
+        print(f"Init selection trace: {time.time() - time_stamp}")
+        time_stamp = time.time()
 
         # add traces for all label-opacity combindations if opacity values are set
         if opacity_set is not None:
@@ -40,9 +56,13 @@ class PlotlyScatterService(PlotlyPlotSerivce):
                 color = plot_settings.color_map[label]
                 for opacity in opacity_set:
                     self._add_scatter_trace(figure, label, opacity, color)
+        print(f"Added scatter traces: {time.time() - time_stamp}")
+        time_stamp = time.time()
 
         if all(var is not None for var in (x, y, ids, labels)):
             self.add_scatter(figure, x, y, ids, labels, opacity_values)
+        print(f"Added scatter: {time.time() - time_stamp}")
+        print(f"Total time spend on figure: {time.time() - start_time}")
 
         return figure
 
@@ -145,12 +165,18 @@ class PlotlyScatterService(PlotlyPlotSerivce):
     Add scatter methods
     '''
     def add_scatter(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[float], labels : Iterable[str], opacity : Iterable[float] | float = 1.0):
+        start_time = time.time()
+        time_stamp = start_time
+        print("Adding scatter..")
+
         if isinstance(opacity, Iterable):
             select_opacity = True
         elif isinstance(opacity, (float, int)):
             select_opacity = False
         else: raise Exception("opacity should be either of type 'Iterable[float]' or 'float'")
 
+        print(f"Prep done: {time.time() - time_stamp}")
+        time_stamp = time.time()
         for i, label in enumerate(labels):
             selected_x = [x[i]]
             selected_y = [y[i]]
@@ -161,25 +187,34 @@ class PlotlyScatterService(PlotlyPlotSerivce):
             else: selected_opacity = opacity
             
             self.add_scatter_points(figure, selected_x, selected_y, selected_time_points, label, selected_opacity)
-    
+        print(f"Added scatter: {time.time() - time_stamp}")
+        time_stamp = time.time()
 
     def add_scatter_point(self, figure : go.Figure, x : float, y : float, point_id : float, label : str, opacity : float = 1.0):
         self.add_scatter_points(figure, [x], [y], [point_id], label, opacity)
 
     
     def add_scatter_points(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[float], label : str, opacity : float = 1.0):
+        start_time = time.time()
         trace_uid = self.get_scatter_trace_uid(label, opacity)
         target_trace : go.Scatter = self.get_trace_by_id(figure, trace_uid)
         if target_trace is None:
             label_group_trace = self.get_trace_by_id(figure, self._get_legend_group_trace_uid(label))
             color = label_group_trace.marker.color
             target_trace = self._add_scatter_trace(figure, label, opacity, color)
-        
+        print(f"Get target trace: {time.time() - start_time}")
+        start_time = time.time()
+
         text = self._get_trace_text(point_ids)
+        print(f"Got trace text: {time.time() - start_time}")
+        start_time = time.time()
+
         target_trace.x = np.append(target_trace.x, x).tolist()
         target_trace.y = np.append(target_trace.y, y).tolist()
         target_trace.ids = np.append(target_trace.ids, point_ids).tolist()
         target_trace.text = np.append(target_trace.text, text).tolist()
+        print(f"Appended to trace: {time.time() - start_time}")
+        start_time = time.time()
 
 
     def _add_scatter_trace(self, figure : go.Figure, label : str, opacity : float, color : str, show_legend : bool = False) -> go.Scatter:

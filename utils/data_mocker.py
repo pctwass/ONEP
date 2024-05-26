@@ -3,11 +3,11 @@ import numpy as np
 import random
 
 n_samples = 10
-samples_dim = 10
+samples_dim = 128
 last_time_stamp = 0
 default_labels = [-1, 0, 1, 2]
 
-def get_mock_data(n_samples : int = n_samples, samples_dim : int = samples_dim, generate_time_points : bool = True) -> (pd.DataFrame, np.ndarray[int], np.ndarray[float]) :
+def get_mock_data(n_samples : int = n_samples, samples_dim : int = samples_dim, generate_time_points : bool = True) -> tuple[pd.DataFrame, np.ndarray[int], np.ndarray[float]] :
     distribution = random.choice([0, 1, 2])
     
     if distribution == 0:
