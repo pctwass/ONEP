@@ -221,11 +221,11 @@ class Dashboard():
     )
     def plot_new_model_iteration(n_clicks):
         global _model_iteration_plotted
-        latest_iteration = _projector.get_update_count()
-        print(f"latest itteration: {latest_iteration}. Current itteration: {_model_iteration_plotted}")
+        latest_iteration_count = _projector.get_update_count()
+        print(f"latest itteration: {latest_iteration_count}. Current itteration: {_model_iteration_plotted}")
         _projector.activate_latest_projector()
 
-        _model_iteration_plotted = latest_iteration
+        _model_iteration_plotted = latest_iteration_count
 
         print("refreshign plot")
         plot_update = _self._refresh_plot()
