@@ -37,7 +37,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
     unclassified-label-color = 'gray'
     min-opacity =  0.25
     show-axis =  false
-    transition-duration = 1500
+    transition-duration = 100
     
     [plot-settings.label-colors]
         label1 = 'blue'
