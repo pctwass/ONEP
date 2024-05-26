@@ -87,11 +87,15 @@ class ProjectorPlotManager():
         self._init_opacity = list(self._opacity_thresholds.keys())[0]
 
     def _resolve_scatter_plot_settings(self) -> ScatterPlotSettings:
+        opacity_values = list(self._settings.opacity_thresholds.keys())
+        if self._settings.min_opacity not in opacity_values:
+            opacity_values.append(self._settings.min_opacity)
+
         return ScatterPlotSettings(
             self.get_labels(),
             self._color_map,
             self._init_opacity,
-            list(self._settings.opacity_thresholds.keys()),
+            opacity_values,
 
             self._settings.point_selection_border_size,
             self._settings.point_selection_border_color,
@@ -282,6 +286,7 @@ class ProjectorPlotManager():
 
 
     def update_plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
+        print("Updating plot..")
         if len(data) != len(time_points):
             raise Exception(f"There should be an equal amount of data points and time points. Data entries: {len(data)}. Time point entries: {len(time_points)}")
 
@@ -313,8 +318,6 @@ class ProjectorPlotManager():
         self._update_highlight(new_figure, data, time_points)
         self._update_selection(new_figure, data, time_points)
         self._plot_figure = new_figure
-
-        # print(f"Plotting update took: {time.time() - start_time}")
 
 
     '''

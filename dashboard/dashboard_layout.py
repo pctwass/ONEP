@@ -10,7 +10,7 @@ class DashboardLayout():
     
     def __init__(self, settings : DashboardSettings):
         self._settings = settings
-        self._graph_refresh_interval = settings.graph_refresh_frequency / 1 * 1000 # from frequency to interval duration in milisecond.
+        self._graph_refresh_interval = 1 / settings.graph_refresh_frequency * 1000 # from frequency to interval duration in milisecond.
 
     def get_layout(self):
         return dbc.Container([
