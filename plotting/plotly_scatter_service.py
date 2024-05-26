@@ -46,7 +46,7 @@ class PlotlyScatterService(PlotlyPlotSerivce):
                     self._add_scatter_trace(figure, label, opacity, color)
         
         if all(var is not None for var in (x, y, ids, labels)):
-            self.add_scatter(figure, x, y, ids, labels, opacity_values, plot_settings.transition_duration)
+            self.add_scatter(figure, x, y, ids, labels, opacity_values)
         return figure
 
 
@@ -147,7 +147,7 @@ class PlotlyScatterService(PlotlyPlotSerivce):
     '''
     Add scatter methods
     '''
-    def add_scatter(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[float], labels : Iterable[str], opacities : Iterable[float] | float = 1.0, transition_duration = 0):
+    def add_scatter(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[float], labels : Iterable[str], opacities : Iterable[float] | float = 1.0):
         if isinstance(opacities, (float, int)):
             opacities = [opacities]
         elif not isinstance(opacities, Iterable):
@@ -170,8 +170,6 @@ class PlotlyScatterService(PlotlyPlotSerivce):
             matching_y = [y[i] for i in matching_indeces]
             matching_time_points = [point_ids[i] for i in matching_indeces]
             self.add_scatter_points(figure, matching_x, matching_y, matching_time_points, label, opacity)
-
-        figure.update_layout(transition={'duration': transition_duration})
 
 
     def add_scatter_point(self, figure : go.Figure, x : float, y : float, point_id : float, label : str, opacity : float = 1.0):
