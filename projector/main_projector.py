@@ -18,7 +18,7 @@ from projector.projection_methods.umap_proj_method import UmapProjMethod
 from projector.projection_methods.approx_umap_proj_method import ApproxUmapProjMethod
 from projector.projection_methods.cebra_proj_method import CebraProjMethod
 from projection_methods.projection_methods_enum import ProjectionMethodEnum
-from process_management.processing_utils import LOCK_NAME_PROJECTOR_HISTORIC_DATA
+from process_management.processing_utils import *
 
 
 # currently none of the underlying projection methods (UMAP and CEBRA) support the training of hybrid models, as a result this functionality is disabled (see if statement below)
@@ -37,10 +37,10 @@ class Projector():
     _recent_labels : list[float]
     _recent_time_points : list[float]
     _historic_df : pd.DataFrame
+    _projections : np.ndarray[float]
 
     _flags : dict[str, multiprocessing.Event]
     _locks : dict[str, multiprocessing.Lock]
-    _projections_count : int = 0
     _processes_pausing_projections : int = 0
 
     _projecting_data : bool = False
@@ -65,6 +65,7 @@ class Projector():
         self._flags = flags
         self._locks = locks
         
+        self._projections = []
         self._init_historic_and_recent_data_objects()
         # self._init_stream_watcher(stream_name)
         self._resolve_projection_method(projection_method)
@@ -88,9 +89,9 @@ class Projector():
 
         match projection_method.value:
             case ProjectionMethodEnum.UMAP.value:
-                self._projection_model_latest = UmapProjMethod(self._settings.hyperparameters)
+                self._projection_model_latest = UmapProjMethod(self._settings.hyperparameters, align_projections=self._settings.align_projections)
             case ProjectionMethodEnum.UMAP_Approx.value:
-                self._projection_model_latest = ApproxUmapProjMethod(self._settings.hyperparameters)
+                self._projection_model_latest = ApproxUmapProjMethod(self._settings.hyperparameters, align_projections=self._settings.align_projections)
             case ProjectionMethodEnum.CEBRA.value:
                 self._projection_model_latest = CebraProjMethod(self._settings.hyperparameters)
             case _: 
@@ -127,7 +128,7 @@ class Projector():
 
 
     def project_new_data(self):
-        print("projecting...")
+        # print("projecting...")
        
         logger.info('Creating new projections')
         self._projecting_data = True
@@ -136,19 +137,20 @@ class Projector():
         #    self._stream_watcher.update()
         data, labels, time_points = get_mock_data(1) #self._stream_watcher.read_buffer()
 
+        projections = None
         if self._projection_model_curr is not None:
-            projections = self.project_data(data)
-            print(f"Plotting new projections. Taking {len(time_points)} time points.")
+            # print(f"Plotting new projections. Taking {len(time_points)} time points.")
             logger.info(f"Plotting new projections. Taking {len(time_points)} time points.")
-          
+            projections = self.project_data(data)
             self._plot_manager.plot(projections, time_points, labels)
-            self._projections_count += len(projections)
 
-        self.aquire_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
+        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         self._recent_data.append(data)
         self._recent_labels.extend(labels)
         self._recent_time_points.extend(time_points)
-        self.release_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
+        if projections is not None:
+            self._projections = np.append(self._projections, projections, axis=0)
+        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
 
         self._projecting_data = False
 
@@ -180,14 +182,27 @@ class Projector():
             print(f"Getting data for update. Update: {self.update_count}")
 
             print("Waiting for current projection to finish")
-            self.aquire_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
+            self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
             historic_data, update_data, labels, time_points = self.get_updated_historic_data()
             self._historic_df = historic_data
-            self.release_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
+
+            projections = self._projections
+            self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
 
             # Only update the projection model when there are a minimum number of data points to train on
             if historic_data.empty or len(historic_data) < self._settings.min_training_samples_to_start_projecting:
                 return
+        else:
+            projections = self._projections
+
+        # Check if the update_data and number of projections match, if not, this causes an error when aligning the projections.
+        projection_count = len(projections)
+        if self._settings.align_projections and self.update_count > 0 and len(update_data) > projection_count:
+            print("Alignment warning: number of datapoints for updating model is greater than the number of projections, turncating update data")
+            update_data = update_data[:projection_count]
+            labels = labels[:projection_count]
+            time_points = time_points[:projection_count]
+
 
         contains_labeled_data = labels is not None and np.isnan(labels).any()
         contains_unlabeled_data = labels is None or any(label != np.NaN for label in labels)
@@ -198,13 +213,13 @@ class Projector():
             # BUG fit new fails when the data is split in such a way that there is only one labeled data entry
             labeled_df, unlabeled_df = split_hybrid_data(update_data, labels, time_points)
             labeled_data, labeled_labels, _ = unpack_dataframe(labeled_df)
-            self._projection_model_latest.fit_new(data=labeled_data, labels=labeled_labels, time_points=time_points)
+            self._projection_model_latest.fit_new(data=labeled_data, labels=labeled_labels, time_points=time_points, past_projections=projections)
             unlabeled_data, _, unlabeled_time_points = unpack_dataframe(unlabeled_df)
             self._projection_model_latest.fit_update(unlabeled_data, unlabeled_time_points)
         elif contains_unlabeled_data:
-            self._projection_model_latest.fit_new(data=update_data, labels=None, time_points=time_points)
+            self._projection_model_latest.fit_new(data=update_data, labels=None, time_points=time_points, past_projections=projections)
         else:
-            self._projection_model_latest.fit_new(data=update_data, labels=labels, time_points=time_points)
+            self._projection_model_latest.fit_new(data=update_data, labels=labels, time_points=time_points, past_projections=projections)
         print("Completted fitting new model")
 
         if self._projection_model_curr is None:
@@ -216,20 +231,33 @@ class Projector():
 
     def activate_latest_projector(self):
         print("Waiting for current projection to finish")
-        self.aquire_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
+        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         print(f'Getting historic data for updating plot')
 
         historic_df, data, labels, time_points = self.get_updated_historic_data()
         self._historic_df = historic_df
-        self.release_lock(LOCK_NAME_PROJECTOR_HISTORIC_DATA)
+        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         
         print(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
         new_projections = self.project_data(data, use_latest=True)
         
+        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        if len(self._projections) == 0:
+            self._projections = new_projections
+        elif len(self._projections) >= len(new_projections): 
+            # make sure only to overwrite the first n entries, otherwise, novel projections added to self._projections between the updating of the historic data~
+            # and this assignment are lost, causing errors when fitting a new model.
+            self._projections[:len(new_projections), :new_projections.shape[1]] = new_projections
+        else:
+            print("Warning: then number of new projections exceeds the number of tracked projection.")
+            self._projections = new_projections
+        
+        self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
+        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        
         print(f"Plotting new model. Taking {len(time_points)} points")
         try:
             self._plot_manager.update_plot(new_projections, time_points, labels)
-            self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
             
         except Exception as e:
             print(f"Projector Plotting Exception: {str(e)}")

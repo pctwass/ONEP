@@ -13,9 +13,11 @@ class ApproxUmapProjMethod(IProjectionMethod):
     _n_neighbors : int = 15
     _neighbour_distance_modifier = 1e-8  # Ensures the minimal distance between neighbours is never exactly 0. Set to a neglectably small value
     _hyperparameters : dict[str, any] = {}
+    _align_projections : bool = False
 
 
-    def __init__(self, hyperparameters : dict[str, any], init_data : any = None):
+    def __init__(self, hyperparameters : dict[str, any], init_data : any = None, align_projections : bool = False):
+        self._align_projections = align_projections
         self._hyperparameters = hyperparameters
         n_neighbors = hyperparameters["n_neighbors"]
 
@@ -32,10 +34,17 @@ class ApproxUmapProjMethod(IProjectionMethod):
 
 
     def fit_new(self, **kwargs):
-
         data = kwargs["data"]
         labels = kwargs["labels"]
 
+        if self._align_projections:
+            if "past_projections" in kwargs and kwargs["past_projections"] is not None and len(kwargs["past_projections"]) > 0:
+                self._hyperparameters["init"] = kwargs["past_projections"]
+            else:
+                print("Warning: align_projections is True, but no past projections were given.")
+
+        past_projection_count = len(kwargs["past_projections"])
+        print(f"update data count: {len(data)}, past projections count: {past_projection_count}")
         new_reducer = ApproxUMAP(**self._hyperparameters)
         new_reducer.fit(X=data, y=labels)
         self._projector = new_reducer
