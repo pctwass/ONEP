@@ -92,10 +92,12 @@ class ConfigurationResolver:
 
     def get_dashboard_settings_from_config(self) -> DashboardSettings:
         dashboard_config_section = self._config.get('dashboard-settings')
+        plot_config_section = self._config.get('plot-settings')
 
         dashboar_settings = DashboardSettings()
         dashboar_settings.graph_refresh_frequency = dashboard_config_section.get('graph-refresh-frequency')
         dashboar_settings.host = self._config.get('dashboard-host')
         dashboar_settings.port = self._config.get('dashboard-port')
+        dashboar_settings.transition_duration = plot_config_section.get('transition-duration')
 
         return dashboar_settings

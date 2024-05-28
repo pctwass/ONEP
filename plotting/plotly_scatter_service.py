@@ -63,7 +63,7 @@ class PlotlyScatterService(PlotlyPlotSerivce):
                 dtick=plot_settings.yaxis_step_size
             ),
             transition={
-                'duration': plot_settings.transition_duration,
+                #'duration': plot_settings.transition_duration,
                 'easing': 'cubic-in-out',
             }
         )
@@ -152,6 +152,8 @@ class PlotlyScatterService(PlotlyPlotSerivce):
             opacities = [opacities]
         elif not isinstance(opacities, Iterable):
             raise Exception("opacity should be either of type 'Iterable[int|float]', 'int', or 'float'")
+        
+        # figure.update_layout(transition={'duration': transition_duration})
 
         index_array_by_label = {}
         for label in set(labels):

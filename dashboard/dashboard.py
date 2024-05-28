@@ -1,6 +1,7 @@
 import copy
 import multiprocessing
 import logging
+import time
 from dash import Dash, html, dcc, no_update
 from dash_extensions.enrich import Output, DashProxy, Input, MultiplexerTransform, callback_context as ctx
 import dash_bootstrap_components as dbc
@@ -33,6 +34,9 @@ class Dashboard():
     "projector-updating" : False
     }
     _paused_processes_retained : dict[str, bool]
+
+    _rendering_plot_update : bool = False
+    _last_plot_update : float = None
     
 
     def __init__(self, settings : DashboardSettings, projector : Projector, plot_manager : ProjectorPlotManager, flags : dict[str, dict[str, multiprocessing.Event]] = {}) -> None:
@@ -221,14 +225,14 @@ class Dashboard():
     )
     def plot_new_model_iteration(n_clicks):
         global _model_iteration_plotted
-        latest_iteration = _projector.get_update_count()
-        print(f"latest itteration: {latest_iteration}. Current itteration: {_model_iteration_plotted}")
+        latest_iteration_count = _projector.get_update_count()
+        print(f"latest itteration: {latest_iteration_count}. Current itteration: {_model_iteration_plotted}")
         _projector.activate_latest_projector()
 
-        _model_iteration_plotted = latest_iteration
+        _model_iteration_plotted = latest_iteration_count
 
         print("refreshign plot")
-        plot_update = _self._refresh_plot()
+        plot_update = _self._refresh_plot(model_ittr_update=True)
         return True, "button-disabled", plot_update
 
 
@@ -376,13 +380,29 @@ class Dashboard():
         return n_clicks, plot_update
 
 
-    def _refresh_plot(self):
+    def _refresh_plot(self, model_ittr_update : bool = False):
         if _plot_manager is None:
             return no_update
         
+        transition_duration = 0
+        if model_ittr_update:
+            self._rendering_plot_update = True
+            self._last_plot_update = time.time()
+            transition_duration = self._settings.transition_duration
+
+        elif self._rendering_plot_update and self._last_plot_update is not None:
+            # check if enough time has past to render the model update provided the transition aimation duration
+            if time.time() < self._last_plot_update + (self._settings.transition_duration / 1000):
+                return no_update
+            self._rendering_plot_update = False
+
+        refreshed_plot = _plot_manager.get_plot()
+        refreshed_plot.update_layout(transition={'duration': transition_duration})
+        
         global _plot_figure
-        _plot_figure = _plot_manager.get_plot()
-        return _plot_figure
+        _plot_figure = refreshed_plot
+
+        return refreshed_plot
     
 
     def _pause_projecting(self):
