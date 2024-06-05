@@ -90,7 +90,7 @@ class StreamWatcher:
 
         self.streams = pylsl.resolve_byprop("name", name)
         if len(self.streams) > 0:
-            print(f"Selecting stream by {name=} was ambigous - taking first")
+            logger.warn(f"Selecting stream by {name=} was ambigous - taking first")
 
         self.inlet = pylsl.StreamInlet(self.streams[0])
 

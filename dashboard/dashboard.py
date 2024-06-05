@@ -14,6 +14,7 @@ from projector.main_projector import Projector
 from projector.projector_plot_manager import ProjectorPlotManager
 from dashboard.dahsboard_settings import DashboardSettings
 from dashboard.dashboard_layout import DashboardLayout
+from utils.logging import logger
 
 
 _self = None
@@ -225,12 +226,12 @@ class Dashboard():
     def plot_new_model_iteration(n_clicks):
         global _model_iteration_plotted
         latest_iteration_count = _projector.get_update_count()
-        print(f"latest itteration: {latest_iteration_count}. Current itteration: {_model_iteration_plotted}")
+        logger.info(f"latest itteration: {latest_iteration_count}. Current itteration: {_model_iteration_plotted}")
         _projector.activate_latest_projector()
 
         _model_iteration_plotted = latest_iteration_count
 
-        print("refreshign plot")
+        logger.info("refreshign plot")
         plot_update = _self._refresh_plot(model_ittr_update=True)
         return True, "button-disabled", plot_update
 

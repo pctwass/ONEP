@@ -46,9 +46,12 @@ def launch() -> int:
     dashboard_kwargs = get_dashboard_kwargs(dashboard_settings)
 
     process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
-
     process_manager.start_process("dashboard")
-    webbrowser.open('http://127.0.0.1:8007/')
+
+    dashboard_settings = dashboard_kwargs["settings"]
+    host = dashboard_settings.host
+    port = dashboard_settings.port
+    webbrowser.open(f"http://{host}:{port}/")
     return 0
 
 
