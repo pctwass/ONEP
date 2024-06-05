@@ -7,6 +7,7 @@ from utils.logging import logger
 from dareplane_utils.default_server.server import DefaultServer
 from main import configuration_resolver
 
+
 def main(port: int = None, ip: str = None, loglevel: int = 10):
     logger.setLevel(loglevel)
 
@@ -22,12 +23,14 @@ def main(port: int = None, ip: str = None, loglevel: int = 10):
     }
 
     server = DefaultServer(
-        port, ip=ip, pcommand_map=pcommand_map, name="projecotr_control_server"
+        port, ip=ip, pcommand_map=pcommand_map, name="ONEP_server"
     )
 
     # initialize to start the socket
+    logger.info(f"initiating ONEP server at {ip}:{port}")
     server.init_server()
     # start processing of the server
+    logger.info("listening...")
     server.start_listening()
 
     return 0
