@@ -45,6 +45,7 @@ def launch() -> int:
     projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings.plot_settings)
     dashboard_kwargs = get_dashboard_kwargs(dashboard_settings)
 
+    global process_manager
     process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
     process_manager.start_process("dashboard")
 
@@ -69,23 +70,11 @@ def stop() -> int:
 
 def main() -> int:
     init_logger()
-
-    projector_settings, dashboard_settings = get_settings_from_config()
     mode = 'continuous'
 
-    in_stream_name = configuration_resolver.get('data-stream-name')
-    projector_kwargs = get_projector_kwargs(projector_settings, in_stream_name)
-    projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings.plot_settings)
-    dashboard_kwargs = get_dashboard_kwargs(dashboard_settings)
-    process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
-    
     if mode == 'sequential':
-        # plot_manager = ProjectorPlotManager(**projector_plot_manager_kwargs)
-        # projector_kwargs["plot_manager"] = plot_manager
-        # projector = Projector(**projector_kwargs)
+        launch()
         projector = process_manager._managed_objects["projector"]
-        process_manager.start_process("dashboard")
-        webbrowser.open('http://127.0.0.1:8007/')
 
         project_new_data(projector, 20)
         projector.update_projector()
@@ -99,11 +88,17 @@ def main() -> int:
 
 
     elif mode == 'continuous':
-        process_manager.start_all_processes()
-        webbrowser.open('http://127.0.0.1:8007/')
+        launch()
+        
+        time.sleep(20)
+        
+        print("starting projector")
+        start()
+        
         time.sleep(6000)
-        process_manager.stop_process("projector_projecting")
-        process_manager.stop_process("projector_updating")
+        
+        print("stopping projector")
+        stop()
     return 0
 
 
