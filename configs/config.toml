@@ -58,5 +58,5 @@ hyperparameter-config-folder = './configs/hyperparameters'
         end = 1.2
 
 [dashboard-settings]
-    graph-refresh-frequency = 500
+    graph-refresh-frequency = 2
     refresh-after-selection = true
