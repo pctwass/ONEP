@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import umap
-import umap.plot
 
 from utils.logging import logger
 from projection_methods.projection_methods_enum import ProjectionMethodEnum
