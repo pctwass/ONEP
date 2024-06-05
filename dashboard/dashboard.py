@@ -43,8 +43,6 @@ class Dashboard():
         logger = logging.getLogger("werkzeug")
         logger.setLevel(logging.WARNING)
 
-        global _settings
-        _settings = settings
         global _projector
         _projector = projector
         global _plot_manager
@@ -56,6 +54,7 @@ class Dashboard():
         self.app.layout = DashboardLayout(settings).get_layout()
 
         global _self 
+        self._settings = settings
         _self = self
 
         self._paused_processes_retained = copy.copy(self._paused_processes)
