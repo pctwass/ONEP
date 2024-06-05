@@ -1,3 +1,3 @@
 from dareplane_utils.logging.logger import get_logger
 
-logger = get_logger("embedding_projector")
+logger = get_logger("ONEP")
