@@ -265,8 +265,6 @@ class ProjectorPlotManager():
 
 
     def plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
-        start_time = time.time()
-
         data = self._resolve_data(data)
         time_points = [str(time_point) for time_point in time_points]
         labels = self._resolve_labels(labels, len(time_points))
@@ -282,7 +280,6 @@ class ProjectorPlotManager():
 
         self._points.update({point_id: label for point_id, label in zip(time_points, labels)})
         self._opacity_bookkeeping_service.update_opacity_dict_and_plot(self._plot_figure, time_points)
-        print(f"Plotting projection took: {time.time() - start_time}")
 
 
     def update_plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
