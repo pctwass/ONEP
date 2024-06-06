@@ -22,7 +22,7 @@ class IProjectionMethod(metaclass=abc.ABCMeta):
 
 
     # Creates a new instance of the projection model, trained on the provided data. 
-    def fit_new(self, data: pd.DataFrame, labels = None, time_points = None):
+    def fit_new(self, data: pd.DataFrame, labels = None, time_points = None, past_projections = None):
         pass
 
 

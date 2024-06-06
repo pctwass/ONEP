@@ -21,6 +21,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
 
 [projector-settings]
     projection-method = 'UMAP_Approx'
+    align-projection = true
     min-training-samples-to-start-projecting = 5
     stream-buffer-size-s = 8
     max-sampling-frequency = 10
@@ -37,7 +38,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
     unclassified-label-color = 'gray'
     min-opacity =  0.25
     show-axis =  false
-    transition-duration = 1500
+    transition-duration = 500
     
     [plot-settings.label-colors]
         label1 = 'blue'

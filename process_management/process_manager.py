@@ -37,7 +37,7 @@ class ProcessManager:
 
 
     def _create_locks(self):
-        self._locks[LOCK_NAME_PROJECTOR_HISTORIC_DATA] = self._manager.Lock()
+        self._locks[LOCK_NAME_MUTATE_PROJECTOR_DATA] = self._manager.Lock()
         self._locks[LOCK_NAME_PLOT_MANAGER] = self._manager.Lock()
 
 

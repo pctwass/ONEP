@@ -12,9 +12,11 @@ class UmapProjMethod(IProjectionMethod):
     _projector : umap.UMAP
     _n_neighbors : int = 15
     _hyperparameters : dict[str, any] = {}
+    _align_projections : bool = False
 
 
-    def __init__(self, hyperparameters : dict[str, any], init_data : any = None):
+    def __init__(self, hyperparameters : dict[str, any], init_data : any = None, align_projections : bool = False):
+        self._align_projections = align_projections
         self._hyperparameters = hyperparameters
         n_neighbors = hyperparameters["n_neighbors"]
 
@@ -33,12 +35,10 @@ class UmapProjMethod(IProjectionMethod):
         data = kwargs["data"]
         labels = kwargs["labels"]
 
-        n_neighbors = self._n_neighbors
-        if data is not None and data.shape[0] <= n_neighbors:
-            n_neighbors = data.shape[0]
-
-        data.replace([np.inf, -np.inf], np.nan, inplace=True)
-        data = data.dropna()
+        if self._align_projections:
+            if "past_projections" not in kwargs or kwargs["past_projections"] is None or len(kwargs["past_projections"]) == 0:
+                print("Warning: align_projections is True, but no past projections were given.")
+            self._hyperparameters["init"] = kwargs["past_projections"]
 
         new_reducer = umap.UMAP(**self._hyperparameters)
         new_reducer.fit(data, labels)
