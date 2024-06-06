@@ -3,7 +3,8 @@ port = 8088
 dashboard-host = '127.0.0.1'
 dashboard-port = 8007
 
-data-stream-name = 'mockup_EEG_stream'
+data-stream-name = 'mockup_random'
+stream-buffer-size-s = 0.1
 
 labels = [
     'label1',
@@ -23,7 +24,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
     projection-method = 'UMAP_Approx'
     align-projection = true
     min-training-samples-to-start-projecting = 5
-    stream-buffer-size-s = 8
+    stream-buffer-size-s = 1
     max-sampling-frequency = 10
     max-model-update-frequency = 0.1
 

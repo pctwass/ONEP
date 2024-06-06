@@ -41,12 +41,15 @@ def init_logger():
 def launch() -> int:
     projector_settings, dashboard_settings = get_settings_from_config()
     in_stream_name = configuration_resolver.get('data-stream-name')
-    projector_kwargs = get_projector_kwargs(projector_settings, in_stream_name)
+    stream_buffer_size_s = configuration_resolver.get('stream-buffer-size-s')
+
+    stream_watcher_kwargs = get_stream_watcher_kwargs(in_stream_name, stream_buffer_size_s)
+    projector_kwargs = get_projector_kwargs(projector_settings)
     projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings.plot_settings)
     dashboard_kwargs = get_dashboard_kwargs(dashboard_settings)
 
     global process_manager
-    process_manager = ProcessManager(projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
+    process_manager = ProcessManager(stream_watcher_kwargs, projector_kwargs, projector_plot_manager_kwargs, dashboard_kwargs)
 
     process_manager.start_process("dashboard")
     webbrowser.open('http://127.0.0.1:8007/')
@@ -110,10 +113,15 @@ def project_new_data(projector, repeat : int = 1):
         projector.project_new_data()
 
 
-def get_projector_kwargs(projector_settings : ProjectorSettings, in_stream_name) -> dict[str, any]:
+def get_stream_watcher_kwargs(in_stream_name : str, buffer_size_s : float) -> dict[str, any]:
+    return dict(
+        name = in_stream_name, 
+        buffer_size_s = buffer_size_s 
+    )
+
+def get_projector_kwargs(projector_settings : ProjectorSettings) -> dict[str, any]:
     return dict(
         projection_method = projector_settings.projection_method, 
-        stream_name = in_stream_name, 
         projector_settings = projector_settings 
     )
 

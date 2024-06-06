@@ -372,7 +372,7 @@ class ProjectorPlotManager():
                 point_id = points[point_index]
                 scatter_trace, point_scatter_index = self._scatter_plot_service.get_trace_and_point_index_by_point_id(self._plot_figure, point_id)
                 if scatter_trace is None or point_scatter_index is None:
-                    print(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
+                    # print(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
                     # logger.warning(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
                     continue
 

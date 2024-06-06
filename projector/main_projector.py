@@ -38,6 +38,7 @@ class Projector():
     _recent_time_points : list[float]
     _historic_df : pd.DataFrame
     _projections : np.ndarray[float]
+    _last_time_stamp : int = 0
 
     _flags : dict[str, multiprocessing.Event]
     _locks : dict[str, multiprocessing.Lock]
@@ -53,7 +54,7 @@ class Projector():
             self, 
             projection_method : ProjectionMethodEnum, 
             plot_manager : ProjectorPlotManager,
-            stream_name: str = "mock_EEG_stream", 
+            stream_watcher = StreamWatcher, 
             projector_settings : ProjectorSettings = ProjectorSettings(), 
             flags : dict[str, multiprocessing.Event] = {},
             locks : dict[str, multiprocessing.Lock] = {}
@@ -61,13 +62,14 @@ class Projector():
         
         self.id = f"{projection_method.name}_{str(uuid.uuid4())}"
         self._plot_manager = plot_manager
+        self._stream_watcher = stream_watcher
         self._settings = projector_settings
         self._flags = flags
         self._locks = locks
         
         self._projections = []
         self._init_historic_and_recent_data_objects()
-        # self._init_stream_watcher(stream_name)
+        #self._init_stream_watcher(stream_name)
         self._resolve_projection_method(projection_method)
 
     def _init_historic_and_recent_data_objects(self):
@@ -96,6 +98,11 @@ class Projector():
                 self._projection_model_latest = CebraProjMethod(self._settings.hyperparameters)
             case _: 
                 raise Exception(f"The projection method {projection_method.name} is not supported.")
+
+    def connect_to_stream(self):
+        logger.info(f'Watching stream')
+        self._stream_watcher.connect_to_stream()
+
 
     # -------------- end of init functions --------------
             
@@ -133,9 +140,17 @@ class Projector():
         logger.info('Creating new projections')
         self._projecting_data = True
 
-        # if self._settings.auto_update_stream_on_projection:
-        #    self._stream_watcher.update()
-        data, labels, time_points = get_mock_data(1) #self._stream_watcher.read_buffer()
+        self._stream_watcher.update()
+        data = self._stream_watcher.read_buffer()
+        #time_points = self._stream_watcher.read_buffer_t()
+        labels = [0] * len(data)
+        
+        if data is None or len(data) == 0:
+            return
+        
+        new_last_time_stamp = self._last_time_stamp + len(data)
+        time_points = range(self._last_time_stamp+1, new_last_time_stamp+1)
+        self._last_time_stamp = new_last_time_stamp
 
         projections = None
         if self._projection_model_curr is not None:
