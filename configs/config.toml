@@ -4,7 +4,7 @@ dashboard-host = '127.0.0.1'
 dashboard-port = 8007
 
 data-stream-name = 'mockup_random'
-stream-buffer-size-s = 0.1
+stream-buffer-size-s = 0.05
 
 labels = [
     'label1',
