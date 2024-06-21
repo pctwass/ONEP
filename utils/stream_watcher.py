@@ -168,10 +168,13 @@ class StreamWatcher:
         return pd.DataFrame(data, dtype=np.float32)
     
     def read_buffer_t(self) -> pd.DataFrame:
-        data = np.vstack(
+        data = np.append(
             [self.buffer_t[self.curr_buffer_position :], self.buffer_t[: self.curr_buffer_position]]
         )
         return pd.DataFrame(data, dtype=np.float32)
+    
+    def get_last_t(self) -> float:
+        return self.last_t
 
     def disconnect(self):
         """TODO to be implemented"""
