@@ -41,10 +41,10 @@ class ApproxUmapProjMethod(IProjectionMethod):
             if "past_projections" in kwargs and kwargs["past_projections"] is not None and len(kwargs["past_projections"]) > 0:
                 self._hyperparameters["init"] = kwargs["past_projections"]
             else:
-                print("Warning: align_projections is True, but no past projections were given.")
+                logger.debug(" align_projections is True, but no past projections were given.")
 
         past_projection_count = len(kwargs["past_projections"])
-        print(f"update data count: {len(data)}, past projections count: {past_projection_count}")
+        logger.debug(f"update data count: {len(data)}, past projections count: {past_projection_count}")
         new_reducer = ApproxUMAP(**self._hyperparameters)
         new_reducer.fit(X=data, y=labels)
         self._projector = new_reducer

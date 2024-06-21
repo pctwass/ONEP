@@ -38,6 +38,7 @@ class Projector():
     _recent_time_points : list[float]
     _historic_df : pd.DataFrame
     _projections : np.ndarray[float]
+    _last_time_stamp : int = 0
 
     _flags : dict[str, multiprocessing.Event]
     _locks : dict[str, multiprocessing.Lock]
@@ -53,7 +54,7 @@ class Projector():
             self, 
             projection_method : ProjectionMethodEnum, 
             plot_manager : ProjectorPlotManager,
-            stream_name: str = "mock_EEG_stream", 
+            stream_watcher = StreamWatcher, 
             projector_settings : ProjectorSettings = ProjectorSettings(), 
             flags : dict[str, multiprocessing.Event] = {},
             locks : dict[str, multiprocessing.Lock] = {}
@@ -61,13 +62,14 @@ class Projector():
         
         self.id = f"{projection_method.name}_{str(uuid.uuid4())}"
         self._plot_manager = plot_manager
+        self._stream_watcher = stream_watcher
         self._settings = projector_settings
         self._flags = flags
         self._locks = locks
         
         self._projections = []
         self._init_historic_and_recent_data_objects()
-        # self._init_stream_watcher(stream_name)
+        #self._init_stream_watcher(stream_name)
         self._resolve_projection_method(projection_method)
 
     def _init_historic_and_recent_data_objects(self):
@@ -96,6 +98,11 @@ class Projector():
                 self._projection_model_latest = CebraProjMethod(self._settings.hyperparameters)
             case _: 
                 raise Exception(f"The projection method {projection_method.name} is not supported.")
+
+    def connect_to_stream(self):
+        logger.info(f'Watching stream')
+        self._stream_watcher.connect_to_stream()
+
 
     # -------------- end of init functions --------------
             
@@ -128,19 +135,24 @@ class Projector():
 
 
     def project_new_data(self):
-        # print("projecting...")
-       
-        logger.info('Creating new projections')
+        logger.debug('Creating new projections')
         self._projecting_data = True
 
-        # if self._settings.auto_update_stream_on_projection:
-        #    self._stream_watcher.update()
-        data, labels, time_points = get_mock_data(1) #self._stream_watcher.read_buffer()
+        self._stream_watcher.update()
+        data = self._stream_watcher.read_buffer()
+        #time_points = self._stream_watcher.read_buffer_t()
+        labels = [0] * len(data)
+        
+        if data is None or len(data) == 0:
+            return
+        
+        new_last_time_stamp = self._last_time_stamp + len(data)
+        time_points = range(self._last_time_stamp+1, new_last_time_stamp+1)
+        self._last_time_stamp = new_last_time_stamp
 
         projections = None
         if self._projection_model_curr is not None:
-            # print(f"Plotting new projections. Taking {len(time_points)} time points.")
-            logger.info(f"Plotting new projections. Taking {len(time_points)} time points.")
+            logger.debug(f"Plotting new projections. Taking {len(time_points)} time points.")
             projections = self.project_data(data)
             self._plot_manager.plot(projections, time_points, labels)
 
@@ -165,23 +177,19 @@ class Projector():
         if historic_data is not None:
             historic_data = historic_data.drop(['labels', 'time points'], axis=1)
 
-        if use_latest:
-            print(f"len data: {len(data)}")
         projections = projection_model.project(data=data, existing_data=historic_data)
         return projections
 
     
     # Data selection priority: update_data parameter -> historic data
     def update_projector(self, update_data: pd.DataFrame = None, labels : Iterable[int] = None, time_points : Iterable[float] = None):
-        print("updating...")
+        logger.debug("updating... new itteration: {self.update_count}")
         start_time = time.time()
         last_time = start_time
 
         #get update data if not provided
         if update_data is None:
-            print(f"Getting data for update. Update: {self.update_count}")
-
-            print("Waiting for current projection to finish")
+            logger.debug("Waiting for current projection to finish")
             self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
             historic_data, update_data, labels, time_points = self.get_updated_historic_data()
             self._historic_df = historic_data
@@ -198,7 +206,7 @@ class Projector():
         # Check if the update_data and number of projections match, if not, this causes an error when aligning the projections.
         projection_count = len(projections)
         if self._settings.align_projections and self.update_count > 0 and len(update_data) > projection_count:
-            print("Alignment warning: number of datapoints for updating model is greater than the number of projections, turncating update data")
+            logger.warn("(alignment) number of datapoints for updating model is greater than the number of projections, turncating update data")
             update_data = update_data[:projection_count]
             labels = labels[:projection_count]
             time_points = time_points[:projection_count]
@@ -208,7 +216,7 @@ class Projector():
         contains_unlabeled_data = labels is None or any(label != np.NaN for label in labels)
         is_hybrid_data = contains_labeled_data and contains_unlabeled_data
 
-        print(f"Fitting new model. Using {len(update_data)} samples.")
+        logger.info(f"Fitting new model. Using {len(update_data)} samples.")
         if is_hybrid_data and SUPPORTS_HYBRID_MODEL:
             # BUG fit new fails when the data is split in such a way that there is only one labeled data entry
             labeled_df, unlabeled_df = split_hybrid_data(update_data, labels, time_points)
@@ -220,7 +228,7 @@ class Projector():
             self._projection_model_latest.fit_new(data=update_data, labels=None, time_points=time_points, past_projections=projections)
         else:
             self._projection_model_latest.fit_new(data=update_data, labels=labels, time_points=time_points, past_projections=projections)
-        print("Completted fitting new model")
+        logger.info("Completted fitting new model")
 
         if self._projection_model_curr is None:
             self.activate_latest_projector()
@@ -230,15 +238,15 @@ class Projector():
 
 
     def activate_latest_projector(self):
-        print("Waiting for current projection to finish")
+        logger.debug("Waiting for current projection to finish")
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
-        print(f'Getting historic data for updating plot')
+        logger.debug(f'Getting historic data for updating plot')
 
         historic_df, data, labels, time_points = self.get_updated_historic_data()
         self._historic_df = historic_df
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         
-        print(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
+        logger.info(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
         new_projections = self.project_data(data, use_latest=True)
         
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
@@ -249,18 +257,17 @@ class Projector():
             # and this assignment are lost, causing errors when fitting a new model.
             self._projections[:len(new_projections), :new_projections.shape[1]] = new_projections
         else:
-            print("Warning: then number of new projections exceeds the number of tracked projection.")
             self._projections = new_projections
         
         self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         
-        print(f"Plotting new model. Taking {len(time_points)} points")
+        logger.info(f"Plotting new model. Taking {len(time_points)} points")
         try:
             self._plot_manager.update_plot(new_projections, time_points, labels)
             
         except Exception as e:
-            print(f"Projector Plotting Exception: {str(e)}")
+            logger.error(f"Projector Plotting Exception: {str(e)}")
 
 
     def get_updated_historic_data(self, clear_recent : bool = True):
@@ -289,7 +296,7 @@ class Projector():
         while self._projecting_data:
             time.sleep(0.001) # wait for 1 ms
             if wait_counter % 1000 == 0:
-                print(f"Still waiting for curr projection to finish.. {wait_counter}")
+                logger.debug(f"Still waiting for curr projection to finish.. {wait_counter}")
             wait_counter =+ 1
 
 
@@ -315,5 +322,5 @@ def get_NaN_list(length):
 
 def track_time(start_time, last_time, msg):
     time_now = time.time()
-    print(f"{msg}: {time_now-last_time}, {time_now-start_time}")
+    logger.debug(f"{msg}: {time_now-last_time}, {time_now-start_time}")
     return time_now

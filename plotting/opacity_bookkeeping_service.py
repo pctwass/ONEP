@@ -3,6 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 from typing import Iterable
 from plotly_scatter_service import PlotlyScatterService
+from utils.logging import logger
 
 
 class OpacityBookkeepingService:
@@ -37,7 +38,6 @@ class OpacityBookkeepingService:
 
 
     def _reduce_opacity(self) -> list[tuple[float, float]]:
-        # print("Reducing opacity")
         opacity_change_list = list()
         for i, (opacity, points) in enumerate(self._points_by_opacity.items()):
             # if there is no opacity threshold defined or the selected opacity level is the lowerst/final opacity level, continue
@@ -65,7 +65,7 @@ class OpacityBookkeepingService:
         for point_id, new_opacity in opacity_change_list:
             scatter_trace, point_scatter_index = self._scatter_plot_service.get_trace_and_point_index_by_point_id(figure, point_id)
             if scatter_trace is None or point_scatter_index is None:
-                print(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
+                logger.warning(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
                 # logger.warning(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
                 continue
             self._scatter_plot_service.update_point_opacity(figure, scatter_trace, point_scatter_index, new_opacity)

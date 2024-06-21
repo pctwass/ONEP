@@ -37,7 +37,7 @@ class UmapProjMethod(IProjectionMethod):
 
         if self._align_projections:
             if "past_projections" not in kwargs or kwargs["past_projections"] is None or len(kwargs["past_projections"]) == 0:
-                print("Warning: align_projections is True, but no past projections were given.")
+                logger.debug("align_projections is True, but no past projections were given.")
             self._hyperparameters["init"] = kwargs["past_projections"]
 
         new_reducer = umap.UMAP(**self._hyperparameters)
@@ -48,18 +48,13 @@ class UmapProjMethod(IProjectionMethod):
     
     def fit_update(self, **kwargs):
         data = kwargs["data"]
-        
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
-
-        print('updating model')
         self._projector.update(data)
 
 
     def project(self, **kwargs):
         data = kwargs["data"]
-        
-        print('producing embedding')
         data.replace([np.inf, -np.inf], np.nan, inplace=True)
         data = data.dropna()
         return self._projector.transform(data)

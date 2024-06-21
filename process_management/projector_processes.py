@@ -27,6 +27,8 @@ def _projecting_loop(
     flags : dict[str, multiprocessing.Event] = {}
     ):
 
+    projector.connect_to_stream()
+
     freq_hz = projector._getvalue()._settings.sampling_frequency
     dt = 1 / freq_hz
     tlast = time.time_ns()

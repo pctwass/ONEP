@@ -8,6 +8,8 @@ from scatter_plot_settings import ScatterPlotSettings
 from plotly_plot_service import PlotlyPlotSerivce
 from plotly_selection_service import PlotlySelectionService
 from plotly_highlight_service import PlotlyHighlightService
+from utils.logging import logger
+
 
 SCATTER_TRACE_UID_PREFIX = 'scatter'
 
@@ -22,7 +24,7 @@ class PlotlyScatterService(PlotlyPlotSerivce):
 
 
     def create_figure(self, plot_settings : ScatterPlotSettings, x : Iterable = None, y : Iterable = None, ids : Iterable = None, labels : Iterable = None, opacity_values : Iterable[float] | float = None) -> go.Figure:
-        print("Creating figure")
+        logger.info("Creating figure")
         
         label_set = plot_settings.labels
         opacity_set = [float(opacity) for opacity in plot_settings.opacity_set]

@@ -8,6 +8,7 @@ from dashboard.dahsboard_settings import DashboardSettings
 from projector_processes import create_living_process_project, create_living_process_update_projector
 from dashboard_processes import create_process_dashboard
 from processing_utils import *
+from utils.stream_watcher import StreamWatcher
 
 
 class ProcessManager:
@@ -18,13 +19,13 @@ class ProcessManager:
     _subprocesses : dict[str, multiprocessing.Process] = {}
 
 
-    def __init__(self, projector_kwargs : dict, projector_plot_manager_kwargs : dict, dashboard_kwargs : dict):
+    def __init__(self, stream_watcher_kwarg : dict, projector_kwargs : dict, projector_plot_manager_kwargs : dict, dashboard_kwargs : dict):
         self._register_proxy_classes()
         self._manager = BaseManager()
         self._manager.start()
         self._create_locks()
         self._create_flags()
-        self._create_managed_objects(projector_kwargs, projector_plot_manager_kwargs)
+        self._create_managed_objects(stream_watcher_kwarg, projector_kwargs, projector_plot_manager_kwargs)
         self._create_subprocesses(dashboard_kwargs["settings"])
 
 
@@ -34,6 +35,7 @@ class ProcessManager:
         BaseManager.register('Lock', multiprocessing.Lock)
         BaseManager.register("Projector", Projector)
         BaseManager.register("ProjectorPlotManager", ProjectorPlotManager)
+        BaseManager.register("StreamWatcher", StreamWatcher)
 
 
     def _create_locks(self):
@@ -53,12 +55,17 @@ class ProcessManager:
             )
         )
 
-    def _create_managed_objects(self, projector_kwargs : dict, projector_plot_manager_kwargs : dict):
+    def _create_managed_objects(self, stream_watcher_kwarg : dict, projector_kwargs : dict, projector_plot_manager_kwargs : dict):
+        if stream_watcher_kwarg != None and len(stream_watcher_kwarg) > 0:
+            stream_watcher = self._manager.StreamWatcher(**stream_watcher_kwarg)
+            self._managed_objects["streamWatcher"] = stream_watcher
+
         if projector_plot_manager_kwargs != None and len(projector_plot_manager_kwargs) > 0:
             plot_manager = self._manager.ProjectorPlotManager(**projector_plot_manager_kwargs)
             self._managed_objects["projectorPlotManager"] = plot_manager
 
-        if projector_kwargs != None and len(projector_kwargs) > 0 and plot_manager is not None:
+        if projector_kwargs != None and len(projector_kwargs) > 0 and stream_watcher is not None and plot_manager is not None:
+            projector_kwargs["stream_watcher"] = stream_watcher
             projector_kwargs["plot_manager"] = plot_manager
             projector_kwargs["locks"] = self._locks
             projector = self._manager.Projector(**projector_kwargs)

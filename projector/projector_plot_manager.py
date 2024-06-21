@@ -137,7 +137,7 @@ class ProjectorPlotManager():
     def get_label_by_point_id(self, point_id : str) -> str:
         if point_id in self._points:
             return self._points[point_id]
-        print(f"Warning: {point_id} could not be found in the tracked list of points, searching for id in figure. Bad Bookkeeping.")
+        logger.warn(f"{point_id} could not be found in the tracked list of points, searching for id in figure. Bad Bookkeeping.")
         return self._scatter_plot_service.get_label_by_point_id(self._plot_figure, point_id)
     
     def get_selected_point_ids(self):
@@ -283,7 +283,7 @@ class ProjectorPlotManager():
 
 
     def update_plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
-        print("Updating plot..")
+        logger.info("Updating plot..")
         if len(data) != len(time_points):
             raise Exception(f"There should be an equal amount of data points and time points. Data entries: {len(data)}. Time point entries: {len(time_points)}")
 
@@ -355,7 +355,6 @@ class ProjectorPlotManager():
 
 
     def _reduce_opacity(self):
-        # print("Reducing opacity")
         for i, (opacity, points) in enumerate(self._points_by_opacity.items()):
             # if there is no opacity threshold defined or the selected opacity level is the lowerst/final opacity level, continue
             opacity_threshold = self._opacity_thresholds[opacity]
@@ -372,8 +371,7 @@ class ProjectorPlotManager():
                 point_id = points[point_index]
                 scatter_trace, point_scatter_index = self._scatter_plot_service.get_trace_and_point_index_by_point_id(self._plot_figure, point_id)
                 if scatter_trace is None or point_scatter_index is None:
-                    print(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
-                    # logger.warning(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
+                    logger.warn(f"could not find point in figure when attempting to reduce opacity. Point:{point_id}")
                     continue
 
                 self._scatter_plot_service.update_point_opacity(self._plot_figure, scatter_trace, point_scatter_index, reduced_opacity)
