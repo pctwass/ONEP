@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import random
 
-n_samples = 10
+n_samples = 1
 samples_dim = 128
 last_time_stamp = 0
 default_labels = [-1, 0, 1, 2]
@@ -25,7 +25,7 @@ def get_mock_data(n_samples : int = n_samples, samples_dim : int = samples_dim, 
         last_time_stamp = end_time_stamp
 
     labels = [distribution] * n_samples
-    return data, labels, time_points
+    return data, time_points, labels
 
 
 def get_mock_labels(n_samples : int = n_samples, label_set = default_labels):

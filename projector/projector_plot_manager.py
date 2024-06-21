@@ -270,6 +270,7 @@ class ProjectorPlotManager():
         labels = self._resolve_labels(labels, len(time_points))
         self._normalize_data(data)
 
+        logger.debug("add scatter")
         self._scatter_plot_service.add_scatter(
             self._plot_figure,
             data[0],
@@ -279,11 +280,12 @@ class ProjectorPlotManager():
         )
 
         self._points.update({point_id: label for point_id, label in zip(time_points, labels)})
+        logger.debug("uodating opacity bookkeeping")
         self._opacity_bookkeeping_service.update_opacity_dict_and_plot(self._plot_figure, time_points)
 
 
     def update_plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
-        logger.info("Updating plot..")
+        logger.warn("Updating plot..")
         if len(data) != len(time_points):
             raise Exception(f"There should be an equal amount of data points and time points. Data entries: {len(data)}. Time point entries: {len(time_points)}")
 
@@ -314,6 +316,7 @@ class ProjectorPlotManager():
         self._points = {point_id: label for point_id, label in zip(time_points, labels)}
         self._update_highlight(new_figure, data, time_points)
         self._update_selection(new_figure, data, time_points)
+        logger.warn(f"assign new figure. {len(new_figure.data)}")
         self._plot_figure = new_figure
 
 

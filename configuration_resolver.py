@@ -31,6 +31,7 @@ class ConfigurationResolver:
         method_string = projector_config_section.get("projection-method")
         projector_settings.projection_method = ProjectionMethodEnum.from_string(method_string)
         projector_settings.align_projections = projector_config_section.get("align-projection")
+        projector_settings.use_mock_data = projector_config_section.get("use-mock-data")
 
         projector_settings.min_training_samples_to_start_projecting = projector_config_section.get('min-training-samples-to-start-projecting')
         projector_settings.stream_buffer_size_s = projector_config_section.get('stream-buffer-size-s')

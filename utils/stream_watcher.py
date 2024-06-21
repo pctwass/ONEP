@@ -181,6 +181,13 @@ class StreamWatcher:
         pass
 
 
+    def read(self) -> tuple[pd.DataFrame, float, float|int|str]:
+        self.update()
+        data = self.read_buffer()
+        time_points = self.read_buffer_t()
+        labels = [0] * len(data)
+
+
 if __name__ == "__main__":
     sw = StreamWatcher("mock_EEG_stream")
     sw.connect_to_stream()

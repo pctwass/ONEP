@@ -29,7 +29,6 @@ SUPPORTS_HYBRID_MODEL = False
 class Projector():
     _projection_model_curr : IProjectionMethod = None
     _projection_model_latest : IProjectionMethod = None
-    _stream_watcher : StreamWatcher
     _plot_manager : ProjectorPlotManager
     _settings : ProjectorSettings
 
@@ -54,22 +53,19 @@ class Projector():
             self, 
             projection_method : ProjectionMethodEnum, 
             plot_manager : ProjectorPlotManager,
-            stream_watcher = StreamWatcher, 
-            projector_settings : ProjectorSettings = ProjectorSettings(), 
+            settings : ProjectorSettings = ProjectorSettings(), 
             flags : dict[str, multiprocessing.Event] = {},
             locks : dict[str, multiprocessing.Lock] = {}
             ):
         
         self.id = f"{projection_method.name}_{str(uuid.uuid4())}"
         self._plot_manager = plot_manager
-        self._stream_watcher = stream_watcher
-        self._settings = projector_settings
+        self._settings = settings
         self._flags = flags
         self._locks = locks
         
         self._projections = []
         self._init_historic_and_recent_data_objects()
-        #self._init_stream_watcher(stream_name)
         self._resolve_projection_method(projection_method)
 
     def _init_historic_and_recent_data_objects(self):
@@ -79,12 +75,6 @@ class Projector():
         self._historic_df = pd.DataFrame()
         self._historic_df['time points'] = np.nan
         self._historic_df['labels'] = np.nan
-
-    def _init_stream_watcher(self, stream_name: str):
-        logger.info(f'Watching stream: {stream_name}')
-        buffer_size_s = self._settings.stream_buffer_size_s
-        self._stream_watcher = StreamWatcher(stream_name, buffer_size_s)
-        self._stream_watcher.connect_to_stream()
 
     def _resolve_projection_method(self, projection_method : ProjectionMethodEnum):
         logger.info(f'Creating projector of method: {projection_method}')
@@ -98,10 +88,6 @@ class Projector():
                 self._projection_model_latest = CebraProjMethod(self._settings.hyperparameters)
             case _: 
                 raise Exception(f"The projection method {projection_method.name} is not supported.")
-
-    def connect_to_stream(self):
-        logger.info(f'Watching stream')
-        self._stream_watcher.connect_to_stream()
 
 
     # -------------- end of init functions --------------
@@ -134,14 +120,9 @@ class Projector():
             self._historic_df.loc[self._historic_df['time points'] == time_point, "labels"] = new_label
 
 
-    def project_new_data(self):
+    def project_new_data(self, data, time_points, labels):
         logger.debug('Creating new projections')
         self._projecting_data = True
-
-        self._stream_watcher.update()
-        data = self._stream_watcher.read_buffer()
-        #time_points = self._stream_watcher.read_buffer_t()
-        labels = [0] * len(data)
         
         if data is None or len(data) == 0:
             return
@@ -152,8 +133,9 @@ class Projector():
 
         projections = None
         if self._projection_model_curr is not None:
-            logger.debug(f"Plotting new projections. Taking {len(time_points)} time points.")
+            logger.debug(f"Plotting new projections. Taking {len(time_points)} time points. Last time point: {time_points[-1]}. ")
             projections = self.project_data(data)
+            logger.debug(f"Plotting points.")
             self._plot_manager.plot(projections, time_points, labels)
 
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
@@ -206,7 +188,7 @@ class Projector():
         # Check if the update_data and number of projections match, if not, this causes an error when aligning the projections.
         projection_count = len(projections)
         if self._settings.align_projections and self.update_count > 0 and len(update_data) > projection_count:
-            logger.warn("(alignment) number of datapoints for updating model is greater than the number of projections, turncating update data")
+            logger.warn(f"(alignment) number of datapoints for updating model is greater than the number of projections, turncating update data. Count : {projection_count}")
             update_data = update_data[:projection_count]
             labels = labels[:projection_count]
             time_points = time_points[:projection_count]

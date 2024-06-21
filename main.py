@@ -34,8 +34,10 @@ configuration_resolver = ConfigurationResolver(config_path)
 
 
 def init_logger():
-    logger.setLevel(20)
-    logger.addHandler(logging.StreamHandler())
+    #logger.setLevel(10)
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
 
 
 def launch() -> int:
@@ -126,7 +128,7 @@ def get_stream_watcher_kwargs(in_stream_name : str, buffer_size_s : float) -> di
 def get_projector_kwargs(projector_settings : ProjectorSettings) -> dict[str, any]:
     return dict(
         projection_method = projector_settings.projection_method, 
-        projector_settings = projector_settings 
+        settings = projector_settings 
     )
 
 

@@ -4,6 +4,7 @@ from projection_methods.projection_methods_enum import ProjectionMethodEnum
 class ProjectorSettings():
     projection_method : ProjectionMethodEnum
     align_projections : bool = False
+    use_mock_data : bool = False
 
     min_training_samples_to_start_projecting : int = 5
     fit_reducer_when_initiating : bool = False   # obsolete
