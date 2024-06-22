@@ -3,23 +3,17 @@ import logging
 import os
 import time
 import webbrowser
-from configuration_resolver import ConfigurationResolver
 
+from configuration_resolver import ConfigurationResolver
 from fire import Fire
 
-from dashboard.dashboard import Dashboard
-from dashboard.dahsboard_settings import DashboardSettings
-
 from utils.logging import logger
-from utils.stream_watcher import StreamWatcher
-
+from utils.streaming.stream_settings import StreamSettings
+from dashboard.dahsboard_settings import DashboardSettings
 from projector.projector_settings import ProjectorSettings
 from projector.plot_settings import PlotSettings
 
 from process_management.process_manager  import ProcessManager
-
-from projector.main_projector import Projector
-from projector.projector_plot_manager import ProjectorPlotManager
 
 
 module_paths = dependency_resolver.reference_module_paths
@@ -28,7 +22,6 @@ config_file_name: str = "config.toml"
 config_folder: str = os.path.join(os.getcwd(), "configs")
 config_path: str = os.path.join(config_folder, config_file_name)
 
-stream_watcher : StreamWatcher
 process_manager : ProcessManager
 configuration_resolver = ConfigurationResolver(config_path)
 
@@ -113,10 +106,9 @@ def project_new_data(projector, repeat : int = 1):
         projector.project_new_data()
 
 
-def get_stream_watcher_kwargs(in_stream_name : str, buffer_size_s : float) -> dict[str, any]:
+def get_stream_watcher_kwargs(dashboard_settings : StreamSettings) -> dict[str, any]:
     return dict(
-        name = in_stream_name, 
-        buffer_size_s = buffer_size_s 
+        settings = dashboard_settings
     )
 
 def get_projector_kwargs(projector_settings : ProjectorSettings) -> dict[str, any]:
@@ -125,13 +117,11 @@ def get_projector_kwargs(projector_settings : ProjectorSettings) -> dict[str, an
         settings = projector_settings 
     )
 
-
 def get_projector_plot_manager_kwargs(plot_settings : PlotSettings) -> dict[str, any]:
     return dict(
         name = "plot manager",
         settings = plot_settings
     )
-
 
 def get_dashboard_kwargs(dashboard_settings : DashboardSettings) -> dict[str, any]:
     return dict(

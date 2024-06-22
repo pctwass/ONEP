@@ -9,7 +9,6 @@ import time
 from utils.logging import logger
 from utils.data_mocker import *
 from utils.dataframe_utils import *
-from utils.stream_watcher import StreamWatcher
 from projector_settings import ProjectorSettings
 from projector_plot_manager import ProjectorPlotManager
 from projection_methods.projection_methods_enum import ProjectionMethodEnum

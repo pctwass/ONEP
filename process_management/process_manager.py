@@ -8,7 +8,7 @@ from projector.projector_settings import ProjectorSettings
 from projector_processes import create_living_process_project, create_living_process_update_projector
 from dashboard_processes import create_process_dashboard
 from processing_utils import *
-from utils.stream_watcher import StreamWatcher
+from utils.streaming.stream_watcher import StreamWatcher
 
 
 class ProcessManager:
