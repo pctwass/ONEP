@@ -14,20 +14,22 @@ labels = [
 ]
 unclassified-label = 'unclassified'
 
+
 hyperparameter-config-folder = './configs/hyperparameters'
 [hyperparameter-config-files]
     UMAP = 'hyperparameters_umap.toml'
     UMAP_Approx = 'hyperparameters_umap.toml'
     CEBRA = 'hyperparameters_cebra.toml'
 
+
 [projector-settings]
     projection-method = 'UMAP_Approx'
     align-projection = true
     use-mock-data = true
     min-training-samples-to-start-projecting = 5
-    stream-buffer-size-s = 1
     max-sampling-frequency = 10
     max-model-update-frequency = 0.1
+
 
 [plot-settings]
     scatter-point-size = 6
@@ -59,6 +61,33 @@ hyperparameter-config-folder = './configs/hyperparameters'
         start = -0.2
         end = 1.2
 
+
 [dashboard-settings]
     graph-refresh-frequency = 2
     refresh-after-selection = true
+
+
+[stream-settings]
+    feature-stream-name = ''
+    auxiliary-stream-name = ''
+    stream-buffer-size-s = 1
+
+    [stream-settings.feature-stream-layout]
+        id-index = 'first'
+        data-typing = 'float'
+
+    [stream-settings.auxiliary-stream-layout]
+        id-as-first-index = true
+        label-section = 'ground truth label'
+
+        [stream-settings.auxiliary-stream-layout.section.ground-truth-label]
+            section-name = 'ground truth label'
+            length = 1
+            data-typing = 'float'
+            interpretation = 'one-to-one'
+
+        [stream-settings.auxiliary-stream-layout.section.classification-results]
+            section-name = 'classification results'
+            length = 6
+            data-typing = 'float'
+            interpretation = 'index of highest'

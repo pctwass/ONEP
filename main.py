@@ -41,7 +41,7 @@ def init_logger():
 
 
 def launch() -> int:
-    projector_settings, dashboard_settings = get_settings_from_config()
+    stream_settings, projector_settings, dashboard_settings = configuration_resolver.resolve_config()
     in_stream_name = configuration_resolver.get('data-stream-name')
     stream_buffer_size_s = configuration_resolver.get('stream-buffer-size-s')
 
@@ -106,12 +106,6 @@ def main() -> int:
         print("stopping projector")
         stop()
     return 0
-
-
-def get_settings_from_config() -> tuple[ProjectorSettings, DashboardSettings]:
-    projector_settings = configuration_resolver.get_projector_settings_from_config()
-    dashboard_settings = configuration_resolver.get_dashboard_settings_from_config()
-    return projector_settings, dashboard_settings
 
 
 def project_new_data(projector, repeat : int = 1):

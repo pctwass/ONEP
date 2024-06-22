@@ -4,6 +4,7 @@ from dashboard.dahsboard_settings import DashboardSettings
 from projector.plot_settings import PlotSettings
 from projector.projector_settings import ProjectorSettings
 from projector.projection_methods.projection_methods_enum import ProjectionMethodEnum
+from utils.streaming.stream_settings import *
 
 
 class ConfigurationResolver:
@@ -18,10 +19,48 @@ class ConfigurationResolver:
         return section
 
 
-    def resolve_config(self) -> (ProjectorSettings, DashboardSettings):
+    def resolve_config(self) -> tuple[StreamSettings, ProjectorSettings, DashboardSettings]:
+        stream_settings = self.get_stream_settings_from_config()
         projector_settings = self.get_projector_settings_from_config()
         dashboard_settings = self.get_dashboard_settings_from_config()
-        return projector_settings, dashboard_settings
+        return stream_settings, projector_settings, dashboard_settings
+
+
+    def get_stream_settings_from_config(self) -> StreamSettings:
+        stream_config_section = self._config.get('stream-settings')
+
+        stream_settings = StreamSettings()
+        stream_settings.feature_stream_name = stream_config_section.get("feature-stream-name")
+        stream_settings.auxiliary_stream_name = stream_config_section.get("auxiliary-stream-name")
+        stream_settings.stream_buffer_size_s = stream_config_section.get("stream-buffer-size-s")
+
+        feature_stream_layout = StreamLayout()
+        feature_stream_layout_config_section = stream_config_section.get("feature-stream-layout")
+        feature_stream_layout.id_as_first_index = feature_stream_layout_config_section.get("id-index")
+        feature_stream_layout.data_typing = feature_stream_layout_config_section.get("data-typing")
+
+        auxiliary_stream_layout = StreamLayout()
+        auxiliary_stream_layout_config_section = stream_config_section.get("auxiliary-stream-layout")
+        auxiliary_stream_layout.id_as_first_index = auxiliary_stream_layout_config_section.get("id-index")
+        auxiliary_stream_layout.label_section = auxiliary_stream_layout_config_section.get("label-section")
+
+        auxiliary_stream_sections = {}
+        auxilalary_stream_config_subsections = self._get_subsections(auxiliary_stream_layout_config_section.get("section"))
+        for config_subsection in auxilalary_stream_config_subsections.values():
+            stream_section_name = config_subsection.get("section-name")
+            
+            stream_section = StreamSections()
+            stream_section.name = stream_section_name
+            stream_section.length = config_subsection.get("length")
+            stream_section.data_typing = config_subsection.get("data-typing")
+            stream_section.interpretation = config_subsection.get("interpretation")
+
+            auxiliary_stream_sections[stream_section_name] = stream_section
+        auxiliary_stream_layout.sections = auxiliary_stream_sections
+
+        stream_settings.feature_stream_layout = feature_stream_layout
+        stream_settings.auxiliary_stream_layout = auxiliary_stream_layout
+        return stream_settings
 
 
     def get_projector_settings_from_config(self) -> ProjectorSettings:
@@ -103,3 +142,10 @@ class ConfigurationResolver:
         dashboar_settings.transition_duration = plot_config_section.get('transition-duration')
 
         return dashboar_settings
+    
+
+    def _get_subsections(self, section, subsection_identifier = None):
+        if subsection_identifier is None:
+            return {k: v for k, v in section.items()}
+        else:
+            return {k: v for k, v in section.items() if k.startswith(f"{subsection_identifier}")}
