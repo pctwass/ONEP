@@ -38,7 +38,7 @@ def launch() -> int:
     in_stream_name = configuration_resolver.get('data-stream-name')
     stream_buffer_size_s = configuration_resolver.get('stream-buffer-size-s')
 
-    stream_watcher_kwargs = get_stream_watcher_kwargs(in_stream_name, stream_buffer_size_s)
+    stream_watcher_kwargs = get_stream_watcher_kwargs(stream_settings)
     projector_kwargs = get_projector_kwargs(projector_settings)
     projector_plot_manager_kwargs = get_projector_plot_manager_kwargs(projector_settings.plot_settings)
     dashboard_kwargs = get_dashboard_kwargs(dashboard_settings)
@@ -106,9 +106,9 @@ def project_new_data(projector, repeat : int = 1):
         projector.project_new_data()
 
 
-def get_stream_watcher_kwargs(dashboard_settings : StreamSettings) -> dict[str, any]:
+def get_stream_watcher_kwargs(stream_settings : StreamSettings) -> dict[str, any]:
     return dict(
-        settings = dashboard_settings
+        settings = stream_settings
     )
 
 def get_projector_kwargs(projector_settings : ProjectorSettings) -> dict[str, any]:

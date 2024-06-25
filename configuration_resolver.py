@@ -37,7 +37,6 @@ class ConfigurationResolver:
         feature_stream_layout = StreamLayout()
         feature_stream_layout_config_section = stream_config_section.get("feature-stream-layout")
         feature_stream_layout.id_as_first_index = feature_stream_layout_config_section.get("id-index")
-        feature_stream_layout.data_typing = feature_stream_layout_config_section.get("data-typing")
 
         auxiliary_stream_layout = StreamLayout()
         auxiliary_stream_layout_config_section = stream_config_section.get("auxiliary-stream-layout")
@@ -52,7 +51,6 @@ class ConfigurationResolver:
             stream_section = StreamSections()
             stream_section.name = stream_section_name
             stream_section.length = config_subsection.get("length")
-            stream_section.data_typing = config_subsection.get("data-typing")
             stream_section.interpretation = config_subsection.get("interpretation")
 
             auxiliary_stream_sections[stream_section_name] = stream_section

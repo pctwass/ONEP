@@ -71,23 +71,21 @@ hyperparameter-config-folder = './configs/hyperparameters'
     feature-stream-name = ''
     auxiliary-stream-name = ''
     stream-buffer-size-s = 1
+    max-time-drift = 0.00001
 
     [stream-settings.feature-stream-layout]
         id-index = 'first'
-        data-typing = 'float'
 
     [stream-settings.auxiliary-stream-layout]
-        id-as-first-index = true
+        id-index = 'first'
         label-section = 'ground truth label'
 
         [stream-settings.auxiliary-stream-layout.section.ground-truth-label]
             section-name = 'ground truth label'
             length = 1
-            data-typing = 'float'
             interpretation = 'one-to-one'
 
         [stream-settings.auxiliary-stream-layout.section.classification-results]
             section-name = 'classification results'
             length = 6
-            data-typing = 'float'
             interpretation = 'index of highest'

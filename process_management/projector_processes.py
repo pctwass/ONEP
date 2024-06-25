@@ -15,7 +15,7 @@ def create_living_process_project(projector : Projector, stream_watcher : Stream
         reader_function = stream_watcher.read
 
     process_target = _projecting_loop
-    kwargs = dict(projector=projector, reader_function=reader_function, flags=flags)
+    kwargs = dict(projector=projector, stream_watcher=stream_watcher, reader_function=reader_function, flags=flags)
     subprocess = create_subprocess(process_target, kwargs=kwargs)
 
     return subprocess
@@ -31,6 +31,7 @@ def create_living_process_update_projector(projector : Projector, flags : dict[s
 
 def _projecting_loop(
     projector : Projector,
+    stream_watcher : StreamWatcher,
     reader_function,
     flags : dict[str, multiprocessing.Event] = {}
     ):
@@ -38,6 +39,8 @@ def _projecting_loop(
     freq_hz = projector._getvalue()._settings.sampling_frequency
     dt = 1 / freq_hz
     tlast = time.time_ns()
+
+    stream_watcher.connect_to_streams()
 
     while not flags["stop"].is_set():
         now = time.time_ns()
