@@ -7,6 +7,7 @@ import webbrowser
 from configuration_resolver import ConfigurationResolver
 from fire import Fire
 
+from projector.main_projector import Projector
 from utils.data_mocker import get_mock_data
 from utils.logging import logger
 from utils.streaming.stream_settings import StreamSettings
@@ -70,18 +71,18 @@ def stop() -> int:
 
 def main() -> int:
     init_logger()
-    mode = 'sequential'
+    mode = 'continuous'
 
     if mode == 'sequential':
         launch()
-        projector = process_manager._managed_objects["projector"]
+        projector : Projector = process_manager._managed_objects["projector"]
 
-        project_new_data(projector, 20)
-        projector.update_projector()
         project_new_data(projector, 100)
         projector.update_projector()
-        project_new_data(projector, 10)
-        project_new_data(projector, 5)
+        project_new_data(projector, 1000)
+        projector.update_projector()
+        project_new_data(projector, 1000)
+        project_new_data(projector, 100)
         projector.update_projector()
 
         time.sleep(6000)
@@ -90,14 +91,14 @@ def main() -> int:
     elif mode == 'continuous':
         launch()
         
-        time.sleep(20)
+        time.sleep(10)
         
-        print("starting projector")
+        logger.info("starting projector")
         start()
         
         time.sleep(6000)
         
-        print("stopping projector")
+        logger.info("stopping projector")
         stop()
     return 0
 

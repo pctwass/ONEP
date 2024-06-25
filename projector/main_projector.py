@@ -32,6 +32,7 @@ class Projector():
     _settings : ProjectorSettings
 
     _recent_data : list[pd.DataFrame]
+    _recent_ids : list[str]
     _recent_labels : list[float]
     _recent_time_points : list[float]
     _historic_df : pd.DataFrame
@@ -69,9 +70,12 @@ class Projector():
 
     def _init_historic_and_recent_data_objects(self):
         self._recent_data = list[pd.DataFrame]()
+        self._recent_ids = list[str]()
         self._recent_labels = list[int]()
         self._recent_time_points = list[float]()
+
         self._historic_df = pd.DataFrame()
+        self._historic_df['ids'] = ""
         self._historic_df['time points'] = np.nan
         self._historic_df['labels'] = np.nan
 
@@ -103,23 +107,20 @@ class Projector():
         return self.update_count
     
 
-    def update_label(self, time_point : float | str, new_label : str):
-        if isinstance(time_point, str):
-            time_point = float(time_point)     
-
+    def update_label(self, id : str, new_label : str):
         # map labels from string to int
         label_int_str_map = self._plot_manager.get_label_mapping()
         new_label : int = next(label_int for label_int, label_str in label_int_str_map.items() if label_str == new_label)
 
         # check if the datapoint is still in recent data otherwise assign the historic df
         try:
-            index = self._recent_time_points.index(time_point)
+            index = self._recent_ids.index(id)
             self._recent_labels[index] = new_label
         except ValueError:
-            self._historic_df.loc[self._historic_df['time points'] == time_point, "labels"] = new_label
+            self._historic_df.loc[self._historic_df['ids'] == id, "labels"] = new_label
 
 
-    def project_new_data(self, data, time_points, labels):
+    def project_new_data(self, data : pd.DataFrame, time_points : list[float], labels : list[int]):
         logger.debug('Creating new projections')
         self._projecting_data = True
         
@@ -127,18 +128,20 @@ class Projector():
             return
         
         new_last_time_stamp = self._last_time_stamp + len(data)
-        projection_ids = range(self._last_time_stamp+1, new_last_time_stamp+1)
+        ids_range = range(self._last_time_stamp+1, new_last_time_stamp+1)
+        ids = [str(id) for id in ids_range]
         self._last_time_stamp = new_last_time_stamp
 
         projections = None
         if self._projection_model_curr is not None:
-            logger.debug(f"Plotting new projections. Taking {len(projection_ids)} points. Last point: {projection_ids[-1]}. ")
+            logger.debug(f"Plotting new projections. Taking {len(ids)} points. Last point: {ids[-1]}. ")
             projections = self.project_data(data)
             logger.debug(f"Plotting points.")
-            self._plot_manager.plot(projections, projection_ids, time_points, labels)
+            self._plot_manager.plot(projections, ids, time_points, labels)
 
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         self._recent_data.append(data)
+        self._recent_ids.extend(ids)
         self._recent_labels.extend(labels)
         self._recent_time_points.extend(time_points)
         if projections is not None:
@@ -172,7 +175,7 @@ class Projector():
         if update_data is None:
             logger.debug("Waiting for current projection to finish")
             self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
-            historic_data, update_data, labels, time_points = self.get_updated_historic_data()
+            historic_data, update_data, _, labels, time_points = self.get_updated_historic_data()
             self._historic_df = historic_data
 
             projections = self._projections
@@ -201,9 +204,9 @@ class Projector():
         if is_hybrid_data and SUPPORTS_HYBRID_MODEL:
             # BUG fit new fails when the data is split in such a way that there is only one labeled data entry
             labeled_df, unlabeled_df = split_hybrid_data(update_data, labels, time_points)
-            labeled_data, labeled_labels, _ = unpack_dataframe(labeled_df)
+            labeled_data, _, labeled_labels, _ = unpack_dataframe(labeled_df)
             self._projection_model_latest.fit_new(data=labeled_data, labels=labeled_labels, time_points=time_points, past_projections=projections)
-            unlabeled_data, _, unlabeled_time_points = unpack_dataframe(unlabeled_df)
+            unlabeled_data, _, _, unlabeled_time_points = unpack_dataframe(unlabeled_df)
             self._projection_model_latest.fit_update(unlabeled_data, unlabeled_time_points)
         elif contains_unlabeled_data:
             self._projection_model_latest.fit_new(data=update_data, labels=None, time_points=time_points, past_projections=projections)
@@ -223,7 +226,7 @@ class Projector():
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         logger.debug(f'Getting historic data for updating plot')
 
-        historic_df, data, labels, time_points = self.get_updated_historic_data()
+        historic_df, data, ids, labels, time_points = self.get_updated_historic_data()
         self._historic_df = historic_df
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         
@@ -243,10 +246,9 @@ class Projector():
         self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         
-        projection_ids =  data.index.tolist()
-        logger.info(f"Plotting new model. Taking {len(projection_ids)} points")
+        logger.info(f"Plotting new model. Taking {len(ids)} points")
         try:
-            self._plot_manager.update_plot(latest_projections, projection_ids, time_points, labels)
+            self._plot_manager.update_plot(latest_projections, ids, time_points, labels)
             
         except Exception as e:
             logger.error(f"Projector Plotting Exception: {str(e)}")
@@ -255,21 +257,24 @@ class Projector():
     def get_updated_historic_data(self, clear_recent : bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[any], list[float]]:
         # Copy and clear recent data to minimize data loss
         recent_data_copy = self._recent_data.copy()
+        recent_ids_copy = self._recent_ids.copy()
         recent_labels_copy = self._recent_labels.copy()
         recent_time_points_copy = self._recent_time_points.copy()
 
         if clear_recent:
             self._recent_data.clear()
+            self._recent_ids.clear()
             self._recent_labels.clear()
             self._recent_time_points.clear()
 
-        historic_data_data_columns = self._historic_df.drop(['labels', 'time points'], axis=1)
+        historic_data_data_columns = self._historic_df.drop(['ids', 'labels', 'time points'], axis=1)
         update_data = concact_dataframes(historic_data_data_columns, recent_data_copy, True)
+        updated_ids = list(pd.concat([self._historic_df['ids'], pd.Series(recent_ids_copy)], ignore_index=True))
         updated_labels = list(pd.concat([self._historic_df['labels'], pd.Series(recent_labels_copy)], ignore_index=True))
         updated_time_points = list(pd.concat([self._historic_df['time points'], pd.Series(recent_time_points_copy)], ignore_index=True))
 
-        updated_historic_df = pack_dataframe(update_data, updated_labels, updated_time_points)
-        return updated_historic_df, update_data, updated_labels, updated_time_points
+        updated_historic_df = pack_dataframe(update_data, updated_ids, updated_labels, updated_time_points)
+        return updated_historic_df, update_data, updated_ids, updated_labels, updated_time_points
     
 
     def _wait_for_curr_projection_to_finish(self):

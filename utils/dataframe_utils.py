@@ -2,16 +2,17 @@ import pandas as pd
 import numpy as np
 from pyparsing import Iterable
 
-def pack_dataframe(data, labels : Iterable, time_points : Iterable):
+def pack_dataframe(data, ids : Iterable, labels : Iterable, time_points : Iterable):
     df = pd.DataFrame(data)
+    df['ids'] = ids
     df['labels'] = labels
     df['time points'] = time_points
     return df
 
 
-def unpack_dataframe(df) -> (pd.DataFrame, np.array, np.array):
-    data = df.drop(['labels', 'time points'], axis=1)
-    return data, df['labels'], df['time points']
+def unpack_dataframe(df) -> tuple[pd.DataFrame, np.array, np.array, np.array]:
+    data = df.drop(['ids', 'labels', 'time points'], axis=1)
+    return data, df['ids'], df['labels'], df['time points']
 
 
 '''

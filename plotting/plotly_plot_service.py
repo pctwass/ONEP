@@ -45,7 +45,7 @@ class PlotlyPlotSerivce():
             if text is None: 
                 formatted_text.append("")
             else:
-                formatted_text.append(f"time: {text}") 
+                formatted_text.append(f"{text}") 
         return formatted_text 
     
 
