@@ -16,6 +16,9 @@ class StreamInterpreter():
         self.__stream_layout = stream_layout
         self.__interpreter_type = interpreter_type
 
+        if isinstance(stream_layout.id_index, str):
+            stream_layout.id_index = str.lower(stream_layout.id_index)
+
         match stream_layout.id_index:
             case "first": self.__id_index = 0
             case "last": self.__id_index = -1
@@ -34,7 +37,7 @@ class StreamInterpreter():
 
     def _interpret_feature_stream(self, stream_content : pd.DataFrame) -> tuple[any, int]:
         if self.__id_index is not None:
-            id_index = stream_content.pop[self.__id_index]
+            id_index = stream_content.pop(self.__id_index)
             return stream_content, id_index
         return stream_content, None
     
@@ -45,7 +48,7 @@ class StreamInterpreter():
         else:
             id_index = None
 
-        start_index, end_index = self._get_target_section_start_index_and_length()
+        start_index, end_index = self._get_target_section_start_and_end_index()
         label_data = stream_content.iloc[:, start_index:end_index]
 
         stream_section = self.__stream_layout.sections[self.__stream_layout.label_section]
@@ -72,6 +75,8 @@ class StreamInterpreter():
             if section.name == target_section:
                 return start_index, start_index + section.length
             start_index += section.length
+        
+        raise Exception("Stream interpreter exception: could not find target section")
 
 
 # -------------- Interpretation Functions --------------

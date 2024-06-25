@@ -7,7 +7,7 @@ class StreamWatcher():
     __settings : StreamSettings
     __time_point_match_window : list[int]
     
-    __feature_stream_watcher : DpStreamWatcher
+    feature_stream_watcher : DpStreamWatcher
     __feature_stream_interpreter : StreamInterpreter
     __auxiliary_stream_watcher : DpStreamWatcher
     __auxiliary_stream_interpreter : StreamInterpreter
@@ -22,7 +22,7 @@ class StreamWatcher():
         self.__set_time_point_match_window(settings.time_point_match_window_size)
 
         buffer_size_s = settings.stream_buffer_size_s
-        self.__feature_stream_watcher = DpStreamWatcher(settings.feature_stream_name, buffer_size_s)
+        self.feature_stream_watcher = DpStreamWatcher(settings.feature_stream_name, buffer_size_s)
         self.__feature_stream_interpreter = StreamInterpreter(settings.feature_stream_layout, StreamInterpreterTypeEnum.Features)
 
         if self.__use_auxiliary_stream:
@@ -56,20 +56,28 @@ class StreamWatcher():
     
 
     def connect_to_streams(self):
-        self.__feature_stream_watcher.connect_to_stream()
-        if self.__use_auxiliary_stream:
-            self.__auxiliary_stream_watcher.connect_to_stream()
+        try:
+            self.feature_stream_watcher.connect_to_stream()
+            if self.__use_auxiliary_stream:
+                self.__auxiliary_stream_watcher.connect_to_stream()
+        except Exception as e:
+            self.feature_stream_watcher.inlet.value_type
+            breakpoint()
 
 
     def read(self) -> tuple[pd.DataFrame, enumerate[float], enumerate[float]]:
-        feature_data, feature_time_points = self.__read_stream_buffer(self.__feature_stream_watcher)
+        feature_data, feature_time_points = self.__read_stream_buffer(self.feature_stream_watcher)
+        if not isinstance(feature_data, pd.DataFrame):
+            feature_data = pd.DataFrame(feature_data)
         features, feature_data_ids = self.__feature_stream_interpreter.interpret(feature_data)
 
         if self.__use_auxiliary_stream:
             auxiliary_data, auxiliary_time_points = self.__read_stream_buffer(self.__auxiliary_stream_watcher)
+            if not isinstance(auxiliary_data, pd.DataFrame):
+                auxiliary_data = pd.DataFrame(auxiliary_data)
             labels, auxilaiary_data_ids = self.__auxiliary_stream_interpreter.interpret(auxiliary_data)
         else:
-            self.__feature_stream_watcher.n_new = 0
+            self.feature_stream_watcher.n_new = 0
             return features, feature_time_points, None
         
         n_features = len(features)
@@ -83,11 +91,11 @@ class StreamWatcher():
 
         # check if all entries in the dpStreamWatcher buffers were matched and set n_new accordingly
         if len(features) == n_features and len(labels) == n_labels:
-            self.__feature_stream_watcher.n_new = 0
+            self.feature_stream_watcher.n_new = 0
         else:
             # do not just use the number of shared entries to update the stream watchers, this will break when there's an entry that is present in one stream but not the other
             n_entries_read = shared_entry_ids_or_indeces[-1] - shared_entry_ids_or_indeces[0] + 1
-            self.__feature_stream_watcher.n_new -= n_entries_read
+            self.feature_stream_watcher.n_new -= n_entries_read
             self.__auxiliary_stream_watcher.n_new -= n_entries_read
         
         return features, time_points, labels
@@ -114,12 +122,12 @@ class StreamWatcher():
         match_window = self.__time_point_match_window
         max_time_drift = self.__settings.max_time_drift
 
-        matching_indeces = ()
+        matching_indeces = {}
         for i, feature_time_point in enumerate(feature_time_points):
             window_time_diffs = {} 
 
             for shift_j in match_window:
-                j += shift_j
+                j = i + shift_j
                 if j < 0 or j >= chunk_size or j in matching_indeces.values():
                     continue
                 
@@ -130,17 +138,17 @@ class StreamWatcher():
                 continue 
             closest_fit = min(window_time_diffs.items(), key=lambda item: item[1])
 
-            if closest_fit[1] > max_time_drift:
-                continue
-            matching_indeces = (i, closest_fit[i])
+            # if closest_fit[1] > max_time_drift:
+            #     continue
+            matching_indeces[i] = closest_fit[0]
 
-        fetaure_indeces = [t[0] for t in matching_indeces]
-        label_indeces = [t[1] for t in matching_indeces]
+        fetaure_indeces = list(matching_indeces.keys())
+        label_indeces = list(matching_indeces.values())
 
-        features = [features[i] for i in fetaure_indeces]
-        time_points = [time_points[i] for i in fetaure_indeces]
-        labels = [labels[i] for i in label_indeces]
-        return matching_indeces, features, time_points, labels
+        features = [features.iloc[i] for i in fetaure_indeces]
+        time_points = [feature_time_points[i] for i in fetaure_indeces]
+        labels = [labels.iloc[i] for i in label_indeces]
+        return list(matching_indeces.keys()), features, time_points, labels
 
 
 
