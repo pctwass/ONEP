@@ -7,6 +7,7 @@ import webbrowser
 from configuration_resolver import ConfigurationResolver
 from fire import Fire
 
+from utils.data_mocker import get_mock_data
 from utils.logging import logger
 from utils.streaming.stream_settings import StreamSettings
 from dashboard.dahsboard_settings import DashboardSettings
@@ -69,7 +70,7 @@ def stop() -> int:
 
 def main() -> int:
     init_logger()
-    mode = 'continuous'
+    mode = 'sequential'
 
     if mode == 'sequential':
         launch()
@@ -103,7 +104,8 @@ def main() -> int:
 
 def project_new_data(projector, repeat : int = 1):
     for i in range(repeat):
-        projector.project_new_data()
+        data, time_points, labels = get_mock_data()
+        projector.project_new_data(data, time_points, labels)
 
 
 def get_stream_watcher_kwargs(stream_settings : StreamSettings) -> dict[str, any]:

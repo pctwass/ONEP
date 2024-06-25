@@ -29,7 +29,7 @@ class PlotlyScatterService(PlotlyPlotSerivce):
         label_set = plot_settings.labels
         opacity_set = [float(opacity) for opacity in plot_settings.opacity_set]
 
-        if texts is None or len(texts) == 0 and point_ids is not None:
+        if (texts is None or len(texts) == 0) and point_ids is not None:
             texts = [""]*len(point_ids)
 
         if opacity_values is None:

@@ -132,7 +132,7 @@ class Projector():
 
         projections = None
         if self._projection_model_curr is not None:
-            logger.debug(f"Plotting new projections. Taking {len(projection_ids)} time points. Last time point: {projection_ids[-1]}. ")
+            logger.debug(f"Plotting new projections. Taking {len(projection_ids)} points. Last point: {projection_ids[-1]}. ")
             projections = self.project_data(data)
             logger.debug(f"Plotting points.")
             self._plot_manager.plot(projections, projection_ids, time_points, labels)
@@ -244,7 +244,7 @@ class Projector():
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         
         projection_ids =  data.index.tolist()
-        logger.info(f"Plotting new model. Taking {len(time_points)} points")
+        logger.info(f"Plotting new model. Taking {len(projection_ids)} points")
         try:
             self._plot_manager.update_plot(latest_projections, projection_ids, time_points, labels)
             
