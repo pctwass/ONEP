@@ -37,8 +37,6 @@ def init_logger():
 
 def launch() -> int:
     stream_settings, projector_settings, dashboard_settings = configuration_resolver.resolve_config()
-    in_stream_name = configuration_resolver.get('data-stream-name')
-    stream_buffer_size_s = configuration_resolver.get('stream-buffer-size-s')
 
     stream_watcher_kwargs = get_stream_watcher_kwargs(stream_settings)
     projector_kwargs = get_projector_kwargs(projector_settings)
@@ -71,7 +69,7 @@ def stop() -> int:
 
 def main() -> int:
     init_logger()
-    mode = 'continuous'
+    mode = 'sequential'
 
     if mode == 'sequential':
         launch()

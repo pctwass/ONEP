@@ -25,7 +25,7 @@ def get_mock_data(n_samples : int = n_samples, samples_dim : int = samples_dim, 
         last_time_stamp = end_time_stamp
 
     labels = [distribution] * n_samples
-    return data, time_points, labels
+    return data, time_points, None
 
 
 def get_mock_labels(n_samples : int = n_samples, label_set = default_labels):

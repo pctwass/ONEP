@@ -120,12 +120,15 @@ class Projector():
             self._historic_df.loc[self._historic_df['ids'] == id, "labels"] = new_label
 
 
-    def project_new_data(self, data : pd.DataFrame, time_points : list[float], labels : list[int]):
+    def project_new_data(self, data : pd.DataFrame, time_points : list[float], labels : list[int] = None):
         logger.debug('Creating new projections')
         self._projecting_data = True
         
         if data is None or len(data) == 0:
             return
+        
+        if labels is None or len(labels) == 0:
+            labels = [np.NaN] * len(data)
         
         new_last_time_stamp = self._last_time_stamp + len(data)
         ids_range = range(self._last_time_stamp+1, new_last_time_stamp+1)
@@ -139,14 +142,15 @@ class Projector():
             logger.debug(f"Plotting points.")
             self._plot_manager.plot(projections, ids, time_points, labels)
 
-        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
         self._recent_data.append(data)
         self._recent_ids.extend(ids)
-        self._recent_labels.extend(labels)
         self._recent_time_points.extend(time_points)
+        self._recent_labels.extend(labels)
+
         if projections is not None:
             self._projections = np.append(self._projections, projections, axis=0)
-        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
 
         self._projecting_data = False
 
@@ -223,17 +227,17 @@ class Projector():
 
     def activate_latest_projector(self):
         logger.debug("Waiting for current projection to finish")
-        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
         logger.debug(f'Getting historic data for updating plot')
 
         historic_df, data, ids, labels, time_points = self.get_updated_historic_data()
         self._historic_df = historic_df
-        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
         
         logger.info(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
         latest_projections = self.project_data(data, use_latest=True)
         
-        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
         if len(self._projections) == 0:
             self._projections = latest_projections
         elif len(self._projections) >= len(latest_projections): 
@@ -244,7 +248,7 @@ class Projector():
             self._projections = latest_projections
         
         self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
-        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
         
         logger.info(f"Plotting new model. Taking {len(ids)} points")
         try:
