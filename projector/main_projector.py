@@ -127,15 +127,15 @@ class Projector():
             return
         
         new_last_time_stamp = self._last_time_stamp + len(data)
-        time_points = range(self._last_time_stamp+1, new_last_time_stamp+1)
+        projection_ids = range(self._last_time_stamp+1, new_last_time_stamp+1)
         self._last_time_stamp = new_last_time_stamp
 
         projections = None
         if self._projection_model_curr is not None:
-            logger.debug(f"Plotting new projections. Taking {len(time_points)} time points. Last time point: {time_points[-1]}. ")
+            logger.debug(f"Plotting new projections. Taking {len(projection_ids)} time points. Last time point: {projection_ids[-1]}. ")
             projections = self.project_data(data)
             logger.debug(f"Plotting points.")
-            self._plot_manager.plot(projections, time_points, labels)
+            self._plot_manager.plot(projections, projection_ids, time_points, labels)
 
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         self._recent_data.append(data)
@@ -228,30 +228,31 @@ class Projector():
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         
         logger.info(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
-        new_projections = self.project_data(data, use_latest=True)
+        latest_projections = self.project_data(data, use_latest=True)
         
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         if len(self._projections) == 0:
-            self._projections = new_projections
-        elif len(self._projections) >= len(new_projections): 
+            self._projections = latest_projections
+        elif len(self._projections) >= len(latest_projections): 
             # make sure only to overwrite the first n entries, otherwise, novel projections added to self._projections between the updating of the historic data~
             # and this assignment are lost, causing errors when fitting a new model.
-            self._projections[:len(new_projections), :new_projections.shape[1]] = new_projections
+            self._projections[:len(latest_projections), :latest_projections.shape[1]] = latest_projections
         else:
-            self._projections = new_projections
+            self._projections = latest_projections
         
         self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         
+        projection_ids =  data.index.tolist()
         logger.info(f"Plotting new model. Taking {len(time_points)} points")
         try:
-            self._plot_manager.update_plot(new_projections, time_points, labels)
+            self._plot_manager.update_plot(latest_projections, projection_ids, time_points, labels)
             
         except Exception as e:
             logger.error(f"Projector Plotting Exception: {str(e)}")
 
 
-    def get_updated_historic_data(self, clear_recent : bool = True):
+    def get_updated_historic_data(self, clear_recent : bool = True) -> tuple[pd.DataFrame, pd.DataFrame, list[any], list[float]]:
         # Copy and clear recent data to minimize data loss
         recent_data_copy = self._recent_data.copy()
         recent_labels_copy = self._recent_labels.copy()
@@ -290,14 +291,14 @@ class Projector():
             self._locks[lock_name].release()
 
 
-def split_hybrid_data(data, labels, time_points):
+def split_hybrid_data(data, labels, time_points) -> tuple[pd.DataFrame, pd.DataFrame]:
     hybrid_df = pack_dataframe(data, labels, time_points)
     labeled_df = hybrid_df[~np.isnan(hybrid_df['labels'])]
     unlabeled_df = hybrid_df[np.isnan(hybrid_df['labels'])]
     return labeled_df, unlabeled_df
 
 
-def get_NaN_list(length):
+def get_NaN_list(length) -> list[float]:
     return [np.NaN] * length
 
 
