@@ -7,12 +7,13 @@ data-stream-name = 'mockup_random'
 stream-buffer-size-s = 0.05
 
 labels = [
-    'label1',
-    'label2',
-    'label3',
-    'label4'
+    'a',
+    'b',
+    'c',
+    'd'
 ]
 unclassified-label = 'unclassified'
+
 
 hyperparameter-config-folder = './configs/hyperparameters'
 [hyperparameter-config-files]
@@ -20,13 +21,15 @@ hyperparameter-config-folder = './configs/hyperparameters'
     UMAP_Approx = 'hyperparameters_umap.toml'
     CEBRA = 'hyperparameters_cebra.toml'
 
+
 [projector-settings]
     projection-method = 'UMAP_Approx'
     align-projection = true
+    use-mock-data = false
     min-training-samples-to-start-projecting = 5
-    stream-buffer-size-s = 1
-    max-sampling-frequency = 10
+    max-sampling-frequency = 1
     max-model-update-frequency = 0.1
+
 
 [plot-settings]
     scatter-point-size = 6
@@ -42,9 +45,9 @@ hyperparameter-config-folder = './configs/hyperparameters'
     transition-duration = 500
     
     [plot-settings.label-colors]
-        label1 = 'blue'
-        label2 = 'red'
-        label3 = 'green'
+        a = 'blue'
+        b = 'red'
+        c = 'green'
 
     [plot-settings.opacity-thresholds]
         '1' = 20
@@ -58,6 +61,31 @@ hyperparameter-config-folder = './configs/hyperparameters'
         start = -0.2
         end = 1.2
 
+
 [dashboard-settings]
     graph-refresh-frequency = 2
     refresh-after-selection = true
+
+
+[stream-settings]
+    feature-stream-name = 'mockup_random'
+    auxiliary-stream-name = 'mockup_random_markers'
+    stream-buffer-size-s = 1
+    auxiliary-stream-drift = 0
+
+    [stream-settings.feature-stream-layout]
+        id-index = ''
+
+    [stream-settings.auxiliary-stream-layout]
+        id-index = ''
+        label-section = 'ground truth label'
+
+        [stream-settings.auxiliary-stream-layout.section.ground-truth-label]
+            section-name = 'ground truth label'
+            length = 1
+            interpretation = 'one-to-one'
+
+        [stream-settings.auxiliary-stream-layout.section.classification-results]
+            section-name = 'classification results'
+            length = 6
+            interpretation = 'index of highest'

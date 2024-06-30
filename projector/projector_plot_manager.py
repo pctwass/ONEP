@@ -264,37 +264,38 @@ class ProjectorPlotManager():
             self._plot_figure.update_yaxes(range=y_range)
 
 
-    def plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
+    def plot(self, data : pd.DataFrame, point_ids : Iterable[str], time_points : Iterable[float], labels : Iterable[int] | None = None):
         data = self._resolve_data(data)
-        time_points = [str(time_point) for time_point in time_points]
-        labels = self._resolve_labels(labels, len(time_points))
+        time_point_texts = [f"time: {str(time_point)}" for time_point in time_points]
+        labels = self._resolve_labels(labels, len(point_ids))
         self._normalize_data(data)
 
+        logger.debug("add scatter")
         self._scatter_plot_service.add_scatter(
             self._plot_figure,
             data[0],
             data[1],
-            time_points,
-            labels
+            point_ids,
+            labels,
+            time_point_texts
         )
 
-        self._points.update({point_id: label for point_id, label in zip(time_points, labels)})
-        self._opacity_bookkeeping_service.update_opacity_dict_and_plot(self._plot_figure, time_points)
+        self._points.update({point_id: label for point_id, label in zip(point_ids, labels)})
+        logger.debug("uodating opacity bookkeeping")
+        self._opacity_bookkeeping_service.update_opacity_dict_and_plot(self._plot_figure, point_ids)
 
 
-    def update_plot(self, data : pd.DataFrame, time_points : Iterable[float], labels : Iterable[int] | None = None):
+    def update_plot(self, data : pd.DataFrame, point_ids : Iterable[str], time_points : Iterable[float], labels : Iterable[int] | None = None):
         logger.info("Updating plot..")
-        if len(data) != len(time_points):
-            raise Exception(f"There should be an equal amount of data points and time points. Data entries: {len(data)}. Time point entries: {len(time_points)}")
 
         data = self._resolve_data(data)
-        time_points = [str(time_point) for time_point in time_points]
-        labels = self._resolve_labels(labels, len(time_points))
+        time_point_texts = [f"time: {str(time_point)}" for time_point in time_points]
+        labels = self._resolve_labels(labels, len(point_ids))
 
         # check if there are any newly added points
         num_new_points = len(data) - self._get_num_plotted_points()
         if num_new_points > 1:
-            new_point_ids = time_points[:num_new_points] 
+            new_point_ids = point_ids[:num_new_points] 
             self._opacity_bookkeeping_service.update_opacity_dict(new_point_ids)
 
         self._update_axis_ranges(data)
@@ -305,15 +306,17 @@ class ProjectorPlotManager():
             scatter_plot_settings,
             data[0],
             data[1],
-            time_points,
+            point_ids,
             labels,
+            time_point_texts,
             opacity_values
         )
         
 
-        self._points = {point_id: label for point_id, label in zip(time_points, labels)}
-        self._update_highlight(new_figure, data, time_points)
-        self._update_selection(new_figure, data, time_points)
+        self._points = {point_id: label for point_id, label in zip(point_ids, labels)}
+        self._update_highlight(new_figure, data, point_ids)
+        self._update_selection(new_figure, data, point_ids)
+        logger.warn(f"assign new figure. {len(new_figure.data)}")
         self._plot_figure = new_figure
 
 
@@ -328,9 +331,9 @@ class ProjectorPlotManager():
         return id
 
 
-    def _update_highlight(self, new_figure : go.Figure, data : pd.DataFrame, time_points : Iterable[float]):
+    def _update_highlight(self, new_figure : go.Figure, data : pd.DataFrame, point_ids : Iterable[str]):
         for point_id in self._highlighted_points_ids:
-            point_index = time_points.index(point_id)
+            point_index = point_ids.index(point_id)
             x = data[0][point_index]
             y = data[1][point_index]
 
@@ -338,9 +341,9 @@ class ProjectorPlotManager():
             self._highlight_plot_service.highlight_point(new_figure, x, y, point_id, label)
 
 
-    def _update_selection(self, new_figure : go.Figure, data : pd.DataFrame, time_points : Iterable[float]):
+    def _update_selection(self, new_figure : go.Figure, data : pd.DataFrame, ids : Iterable[int]):
         for point_id in self._selected_points:
-            point_index = time_points.index(point_id)
+            point_index = ids.index(point_id)
             x = data[0][point_index]
             y = data[1][point_index]
 
@@ -348,10 +351,10 @@ class ProjectorPlotManager():
             self._selected_points[point_id] = (x, y)
 
 
-    def _expand_opacity_dict(self, time_points : Iterable[str], opacity : float | None = None):
+    def _expand_opacity_dict(self, ids : Iterable[int], opacity : float | None = None):
         if opacity is None:
             opacity = list(self._opacity_thresholds.keys())[0]
-        self._points_by_opacity[opacity].extend(time_points)
+        self._points_by_opacity[opacity].extend(ids)
 
 
     def _reduce_opacity(self):

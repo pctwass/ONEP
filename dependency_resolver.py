@@ -4,6 +4,7 @@ import sys
 reference_module_paths = [
     './',  
     './utils',
+    './utils/streaming',
     './plotting',
     './projector',  
     './process_management',  

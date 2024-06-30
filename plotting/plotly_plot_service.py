@@ -36,8 +36,17 @@ class PlotlyPlotSerivce():
         trace.text = []
 
 
-    def _get_trace_text(self, point_ids : Iterable[str]) -> Iterable[str]:
-        return [f"time: {time_point}" for time_point in point_ids]    
+    def _format_trace_text(self, texts : Iterable[str]) -> Iterable[str]:
+        if texts is None or len(texts) == 0:
+            return None
+        
+        formatted_text = []
+        for text in texts:
+            if text is None: 
+                formatted_text.append("")
+            else:
+                formatted_text.append(f"{text}") 
+        return formatted_text 
     
 
     def _get_legend_group_trace_uid(self, label : str) -> str:

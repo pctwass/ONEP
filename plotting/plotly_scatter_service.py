@@ -23,11 +23,14 @@ class PlotlyScatterService(PlotlyPlotSerivce):
         self._highlight_service = PlotlyHighlightService()
 
 
-    def create_figure(self, plot_settings : ScatterPlotSettings, x : Iterable = None, y : Iterable = None, ids : Iterable = None, labels : Iterable = None, opacity_values : Iterable[float] | float = None) -> go.Figure:
+    def create_figure(self, plot_settings : ScatterPlotSettings, x : Iterable = None, y : Iterable = None, point_ids : Iterable = None, labels : Iterable = None, texts : Iterable[str] = None, opacity_values : Iterable[float] | float = None) -> go.Figure:
         logger.info("Creating figure")
         
         label_set = plot_settings.labels
         opacity_set = [float(opacity) for opacity in plot_settings.opacity_set]
+
+        if (texts is None or len(texts) == 0) and point_ids is not None:
+            texts = [""]*len(point_ids)
 
         if opacity_values is None:
             if plot_settings.initial_opacity is not None:
@@ -45,10 +48,10 @@ class PlotlyScatterService(PlotlyPlotSerivce):
             for label in label_set:
                 color = plot_settings.color_map[label]
                 for opacity in opacity_set:
-                    self._add_scatter_trace(figure, label, opacity, color)
+                    self.__add_scatter_trace(figure, label, opacity, color)
         
-        if all(var is not None for var in (x, y, ids, labels)):
-            self.add_scatter(figure, x, y, ids, labels, opacity_values)
+        if all(var is not None for var in (x, y, point_ids, labels)):
+            self.add_scatter(figure, x, y, point_ids, labels, texts, opacity_values)
         return figure
 
 
@@ -149,13 +152,14 @@ class PlotlyScatterService(PlotlyPlotSerivce):
     '''
     Add scatter methods
     '''
-    def add_scatter(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[float], labels : Iterable[str], opacities : Iterable[float] | float = 1.0):
+    def add_scatter(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[str], labels : Iterable[str], texts : Iterable[str] = None, opacities : Iterable[float] | float = 1.0):
         if isinstance(opacities, (float, int)):
             opacities = [opacities]
         elif not isinstance(opacities, Iterable):
             raise Exception("opacity should be either of type 'Iterable[int|float]', 'int', or 'float'")
         
-        # figure.update_layout(transition={'duration': transition_duration})
+        if texts is None or len(texts) == 0:
+            texts = [""]*len(point_ids)
 
         index_array_by_label = {}
         for label in set(labels):
@@ -170,30 +174,33 @@ class PlotlyScatterService(PlotlyPlotSerivce):
             matching_indeces = list(set(index_array_by_label[label]) & set(index_array_by_opacity[opacity]))
             matching_x = [x[i] for i in matching_indeces]
             matching_y = [y[i] for i in matching_indeces]
-            matching_time_points = [point_ids[i] for i in matching_indeces]
-            self.add_scatter_points(figure, matching_x, matching_y, matching_time_points, label, opacity)
+            matching_point_ids = [point_ids[i] for i in matching_indeces]
+            matching_texts = [texts[i] for i in matching_indeces]
+            self.add_scatter_points(figure, matching_x, matching_y, matching_point_ids, label, matching_texts, opacity)
 
 
-    def add_scatter_point(self, figure : go.Figure, x : float, y : float, point_id : float, label : str, opacity : float = 1.0):
-        self.add_scatter_points(figure, [x], [y], [point_id], label, opacity)
+    def add_scatter_point(self, figure : go.Figure, x : float, y : float, point_id : str, label : str, text : str = None, opacity : float = 1.0):
+        self.add_scatter_points(figure, [x], [y], [point_id], label, [text], opacity)
 
     
-    def add_scatter_points(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[float], label : str, opacity : float = 1.0):
+    def add_scatter_points(self, figure : go.Figure, x : Iterable[float], y : Iterable[float], point_ids : Iterable[str], label : str, texts : Iterable[str] = None, opacity : float = 1.0):
         trace_uid = self.get_scatter_trace_uid(label, opacity)
         target_trace : go.Scatter = self.get_trace_by_id(figure, trace_uid)
         if target_trace is None:
             label_group_trace = self.get_trace_by_id(figure, self._get_legend_group_trace_uid(label))
             color = label_group_trace.marker.color
-            target_trace = self._add_scatter_trace(figure, label, opacity, color)
+            target_trace = self.__add_scatter_trace(figure, label, opacity, color)
 
-        text = self._get_trace_text(point_ids)
         target_trace.x = np.append(target_trace.x, x).tolist()
         target_trace.y = np.append(target_trace.y, y).tolist()
         target_trace.ids = np.append(target_trace.ids, point_ids).tolist()
-        target_trace.text = np.append(target_trace.text, text).tolist()
+        
+        texts = self._format_trace_text(texts)
+        if texts is not None:
+            target_trace.text = np.append(target_trace.text, texts).tolist()
 
 
-    def _add_scatter_trace(self, figure : go.Figure, label : str, opacity : float, color : str, show_legend : bool = False) -> go.Scatter:
+    def __add_scatter_trace(self, figure : go.Figure, label : str, opacity : float, color : str, show_legend : bool = False) -> go.Scatter:
         if not isinstance(opacity, float):
             opacity = float(opacity)
 
@@ -239,6 +246,7 @@ class PlotlyScatterService(PlotlyPlotSerivce):
         x = trace.x[point_index]
         y = trace.y[point_index]
         point_id = trace.ids[point_index]
+        text = trace.text[point_index]
 
         self._remove_point(trace, point_id)
-        self.add_scatter_point(figure, x, y, point_id, label, opacity)
+        self.add_scatter_point(figure, x, y, point_id, label, text, opacity)
