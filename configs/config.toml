@@ -1,5 +1,5 @@
 host = '127.0.0.1'
-port = 8088
+port = 8082
 dashboard-host = '127.0.0.1'
 dashboard-port = 8007
 
@@ -27,7 +27,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
     align-projection = true
     use-mock-data = false
     min-training-samples-to-start-projecting = 5
-    max-sampling-frequency = 1
+    max-sampling-frequency = 100
     max-model-update-frequency = 0.1
 
 
