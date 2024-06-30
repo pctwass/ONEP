@@ -11,11 +11,9 @@ class StreamLayout:
 class StreamSettings:
     feature_stream_name : str
     auxiliary_stream_name : str
-    stream_buffer_size_s : float = 1.0
+    stream_buffer_size_s : float = 1
     
-    max_time_drift : float = 10**-5
-    time_point_match_window_size : int = 3
+    auxiliary_stream_drift : float = None
 
     feature_stream_layout : StreamLayout
     auxiliary_stream_layout : StreamLayout
-

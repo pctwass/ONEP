@@ -13,4 +13,5 @@ class ProjectorSettings():
     model_update_frequency : float = 1
 
     hyperparameters : dict[str, any] = {}
+    labels_map : dict[str] = {0: 'one', 1: 'two', 2: 'three', 3: 'four'}
     plot_settings = PlotSettings()

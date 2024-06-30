@@ -76,8 +76,8 @@ class ProcessManager:
             projector = self._managed_objects["projector"]
             stream_watcher = self._managed_objects["streamWatcher"]
             use_mock_data = projector_settings.use_mock_data
-            self._subprocesses["projector_projecting"] = create_living_process_project(projector, stream_watcher, self._flags["projector_projecting"], use_mock_data)
-            self._subprocesses["projector_updating"] = create_living_process_update_projector(projector, self._flags["projector_updating"])
+            self._subprocesses["projector_projecting"] = create_living_process_project(projector, stream_watcher, self._flags["projector_projecting"], self._locks, use_mock_data)
+            self._subprocesses["projector_updating"] = create_living_process_update_projector(projector, self._flags["projector_updating"], self._locks)
 
         if "projector" in self._managed_objects and dashboard_settings is not None:
             plot_manager = self._managed_objects["projectorPlotManager"]

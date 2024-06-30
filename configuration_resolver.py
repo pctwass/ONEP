@@ -33,14 +33,15 @@ class ConfigurationResolver:
         stream_settings.feature_stream_name = stream_config_section.get("feature-stream-name")
         stream_settings.auxiliary_stream_name = stream_config_section.get("auxiliary-stream-name")
         stream_settings.stream_buffer_size_s = stream_config_section.get("stream-buffer-size-s")
+        stream_settings.auxiliary_stream_drift = stream_config_section.get("auxiliary-stream-drift")
 
         feature_stream_layout = StreamLayout()
         feature_stream_layout_config_section = stream_config_section.get("feature-stream-layout")
-        feature_stream_layout.id_as_first_index = feature_stream_layout_config_section.get("id-index")
+        feature_stream_layout.id_index = feature_stream_layout_config_section.get("id-index")
 
         auxiliary_stream_layout = StreamLayout()
         auxiliary_stream_layout_config_section = stream_config_section.get("auxiliary-stream-layout")
-        auxiliary_stream_layout.id_as_first_index = auxiliary_stream_layout_config_section.get("id-index")
+        auxiliary_stream_layout.id_index = auxiliary_stream_layout_config_section.get("id-index")
         auxiliary_stream_layout.label_section = auxiliary_stream_layout_config_section.get("label-section")
 
         auxiliary_stream_sections = {}
@@ -74,6 +75,10 @@ class ConfigurationResolver:
         projector_settings.stream_buffer_size_s = projector_config_section.get('stream-buffer-size-s')
         projector_settings.sampling_frequency = projector_config_section.get('max-sampling-frequency')
         projector_settings.model_update_frequency = projector_config_section.get('max-model-update-frequency')
+
+        labels = self._config.get('labels')
+        projector_settings.labels_map = {str_label: int_label for int_label, str_label in enumerate(labels)}
+
 
         projector_settings.hyperparameters = self.get_hyperparameters_from_config(method_string)
 

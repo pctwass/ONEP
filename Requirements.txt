@@ -1,6 +1,6 @@
-approx-umap==0.1.2
+approx-umap==0.3.0
 cebra==0.3.0
-dareplane_utils==0.0.7
+dareplane_utils==0.0.8
 dash==2.14.1
 dash_daq==0.5.0
 dash-extensions==1.0.4

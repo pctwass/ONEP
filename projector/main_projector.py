@@ -126,19 +126,26 @@ class Projector():
         if data is None or len(data) == 0:
             return
         
+        if labels is not None and isinstance(labels[0], str):
+            labels = [self._settings.labels_map[str_label] for str_label in labels]
+        elif labels is None:
+            labels = [0] * len(data)
+
         new_last_time_stamp = self._last_time_stamp + len(data)
         time_points = range(self._last_time_stamp+1, new_last_time_stamp+1)
         self._last_time_stamp = new_last_time_stamp
 
         projections = None
         if self._projection_model_curr is not None:
+            print(f"Plotting new projections. Taking {len(time_points)} time points. Last time point: {time_points[-1]}. ")
             logger.debug(f"Plotting new projections. Taking {len(time_points)} time points. Last time point: {time_points[-1]}. ")
             projections = self.project_data(data)
+            print(f"Plotting points.")
             logger.debug(f"Plotting points.")
             self._plot_manager.plot(projections, time_points, labels)
 
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
-        self._recent_data.append(data)
+        self._recent_data.extend(data)
         self._recent_labels.extend(labels)
         self._recent_time_points.extend(time_points)
         if projections is not None:
@@ -164,12 +171,14 @@ class Projector():
     
     # Data selection priority: update_data parameter -> historic data
     def update_projector(self, update_data: pd.DataFrame = None, labels : Iterable[int] = None, time_points : Iterable[float] = None):
-        logger.debug("updating... new itteration: {self.update_count}")
+        print(f"updating... new itteration: {self.update_count}")
+        logger.debug(f"updating... new itteration: {self.update_count}")
         start_time = time.time()
         last_time = start_time
 
         #get update data if not provided
         if update_data is None:
+            print("aquiring lock, update_projector")
             logger.debug("Waiting for current projection to finish")
             self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
             historic_data, update_data, labels, time_points = self.get_updated_historic_data()
@@ -177,6 +186,7 @@ class Projector():
 
             projections = self._projections
             self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+            print("released lock, update_projector")
 
             # Only update the projection model when there are a minimum number of data points to train on
             if historic_data.empty or len(historic_data) < self._settings.min_training_samples_to_start_projecting:
@@ -197,6 +207,7 @@ class Projector():
         contains_unlabeled_data = labels is None or any(label != np.NaN for label in labels)
         is_hybrid_data = contains_labeled_data and contains_unlabeled_data
 
+        print(f"Fitting new model. Using {len(update_data)} samples.")
         logger.info(f"Fitting new model. Using {len(update_data)} samples.")
         if is_hybrid_data and SUPPORTS_HYBRID_MODEL:
             # BUG fit new fails when the data is split in such a way that there is only one labeled data entry
@@ -209,6 +220,7 @@ class Projector():
             self._projection_model_latest.fit_new(data=update_data, labels=None, time_points=time_points, past_projections=projections)
         else:
             self._projection_model_latest.fit_new(data=update_data, labels=labels, time_points=time_points, past_projections=projections)
+        print("Completted fitting new model")
         logger.info("Completted fitting new model")
 
         if self._projection_model_curr is None:
@@ -220,16 +232,20 @@ class Projector():
 
     def activate_latest_projector(self):
         logger.debug("Waiting for current projection to finish")
+        print("aquiring lock, activate_latest_projector 1")
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         logger.debug(f'Getting historic data for updating plot')
 
         historic_df, data, labels, time_points = self.get_updated_historic_data()
         self._historic_df = historic_df
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
-        
+        print("releasing lock, activate_latest_projector 1")
+
+        print(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
         logger.info(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
         new_projections = self.project_data(data, use_latest=True)
         
+        print("aquiring lock, activate_latest_projector 2")
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
         if len(self._projections) == 0:
             self._projections = new_projections
@@ -242,6 +258,7 @@ class Projector():
         
         self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+        print("releasing lock, activate_latest_projector 2")
         
         logger.info(f"Plotting new model. Taking {len(time_points)} points")
         try:
@@ -262,8 +279,13 @@ class Projector():
             self._recent_labels.clear()
             self._recent_time_points.clear()
 
+        if not isinstance(recent_data_copy, pd.DataFrame):
+            # for row in recent_data_copy:
+            #     print([item for item in row])
+            recent_data_copy = pd.DataFrame(recent_data_copy)
+
         historic_data_data_columns = self._historic_df.drop(['labels', 'time points'], axis=1)
-        update_data = concact_dataframes(historic_data_data_columns, recent_data_copy, True)
+        update_data = pd.concat([historic_data_data_columns, recent_data_copy], ignore_index=True)
         updated_labels = list(pd.concat([self._historic_df['labels'], pd.Series(recent_labels_copy)], ignore_index=True))
         updated_time_points = list(pd.concat([self._historic_df['time points'], pd.Series(recent_time_points_copy)], ignore_index=True))
 
