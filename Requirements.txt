@@ -1,4 +1,4 @@
-approx-umap==0.1.2
+approx-umap==0.3.0
 cebra==0.3.0
 dareplane_utils==0.0.8
 dash==2.14.1

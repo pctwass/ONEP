@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from enum import Enum
 from stream_settings import *
@@ -16,13 +17,17 @@ class StreamInterpreter():
         self.__stream_layout = stream_layout
         self.__interpreter_type = interpreter_type
 
+        if isinstance(stream_layout.id_index, str):
+            stream_layout.id_index = str.lower(stream_layout.id_index)
+
         match stream_layout.id_index:
             case "first": self.__id_index = 0
             case "last": self.__id_index = -1
+            case "": self.__id_index = None
             case _: self.__id_index = stream_layout.id_index 
 
 
-    def interpret(self, stream_content : pd.DataFrame) -> tuple[any, int]:
+    def interpret(self, stream_content : np.ndarray) -> tuple[any, int]:
         match self.__interpreter_type:
             case StreamInterpreterTypeEnum.Features:
                 return self._interpret_feature_stream(stream_content)
@@ -32,21 +37,23 @@ class StreamInterpreter():
                 raise Exception("stream interpretation exception: unknown interpreter type")
         
 
-    def _interpret_feature_stream(self, stream_content : pd.DataFrame) -> tuple[any, int]:
+    def _interpret_feature_stream(self, stream_content : np.ndarray) -> tuple[any, int]:
         if self.__id_index is not None:
-            id_index = stream_content.pop[self.__id_index]
+            id_index = stream_content[:, self.__id_index]
+            stream_content = np.delete(stream_content, self.__id_index, axis=1)
             return stream_content, id_index
         return stream_content, None
     
 
-    def _interpret_auxiliary_stream(self, stream_content : pd.DataFrame) -> tuple[any, int]:
+    def _interpret_auxiliary_stream(self, stream_content : np.ndarray) -> tuple[any, int]:
         if self.__id_index is not None:
-            id_index = stream_content.pop[self.__id_index]
+            id_index = stream_content[:, self.__id_index]
+            stream_content = np.delete(stream_content, self.__id_index, axis=1)
         else:
             id_index = None
 
-        start_index, end_index = self._get_target_section_start_index_and_length()
-        label_data = stream_content.iloc[:, start_index:end_index]
+        start_index, end_index = self._get_target_section_start_and_end_index()
+        label_data = stream_content[:, start_index:end_index]
 
         stream_section = self.__stream_layout.sections[self.__stream_layout.label_section]
         match stream_section.interpretation:
@@ -72,17 +79,16 @@ class StreamInterpreter():
             if section.name == target_section:
                 return start_index, start_index + section.length
             start_index += section.length
+        
+        raise Exception("Stream interpreter exception: could not find target section")
 
 
 # -------------- Interpretation Functions --------------
 
     # NOTE: in the case of two or more columns having the highest value, the first column is selected
-    def _select_index_of_highest(stream_content_section : pd.DataFrame):
-        return stream_content_section.idxmax(axis="columns")
+    def _select_index_of_highest(stream_content_section : np.ndarray):
+        return np.argmax(stream_content_section, axis=1)
 
     # NOTE: in the case of two or more columns having the lowest value, the first column is selected
-    def _select_index_of_lowest(stream_content_section : pd.DataFrame):
-        return stream_content_section.idxmin(axis="columns")
-    
-
-
+    def _select_index_of_lowest(stream_content_section : np.ndarray):
+        return np.argmin(stream_content_section, axis=1)

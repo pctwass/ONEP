@@ -127,9 +127,11 @@ class Projector():
         if data is None or len(data) == 0:
             return
         
-        if labels is None or len(labels) == 0:
+        if labels is not None and isinstance(labels[0], str):
+            labels = [self._settings.labels_map[str_label] for str_label in labels]
+        elif labels is None:
             labels = [np.NaN] * len(data)
-        
+
         new_last_time_stamp = self._last_time_stamp + len(data)
         ids_range = range(self._last_time_stamp+1, new_last_time_stamp+1)
         ids = [str(id) for id in ids_range]
@@ -139,11 +141,12 @@ class Projector():
         if self._projection_model_curr is not None:
             logger.debug(f"Plotting new projections. Taking {len(ids)} points. Last point: {ids[-1]}. ")
             projections = self.project_data(data)
+            print(f"Plotting points.")
             logger.debug(f"Plotting points.")
             self._plot_manager.plot(projections, ids, time_points, labels)
 
         self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
-        self._recent_data.append(data)
+        self._recent_data.extend(data)
         self._recent_ids.extend(ids)
         self._recent_time_points.extend(time_points)
         self._recent_labels.extend(labels)
@@ -171,12 +174,14 @@ class Projector():
     
     # Data selection priority: update_data parameter -> historic data
     def update_projector(self, update_data: pd.DataFrame = None, labels : Iterable[int] = None, time_points : Iterable[float] = None):
-        logger.debug("updating... new itteration: {self.update_count}")
+        print(f"updating... new itteration: {self.update_count}")
+        logger.debug(f"updating... new itteration: {self.update_count}")
         start_time = time.time()
         last_time = start_time
 
         #get update data if not provided
         if update_data is None:
+            print("aquiring lock, update_projector")
             logger.debug("Waiting for current projection to finish")
             self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
             historic_data, update_data, _, labels, time_points = self.get_updated_historic_data()
@@ -184,6 +189,7 @@ class Projector():
 
             projections = self._projections
             self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA)
+            print("released lock, update_projector")
 
             # Only update the projection model when there are a minimum number of data points to train on
             if historic_data.empty or len(historic_data) < self._settings.min_training_samples_to_start_projecting:
@@ -204,6 +210,7 @@ class Projector():
         contains_unlabeled_data = labels is None or any(label != np.NaN for label in labels)
         is_hybrid_data = contains_labeled_data and contains_unlabeled_data
 
+        print(f"Fitting new model. Using {len(update_data)} samples.")
         logger.info(f"Fitting new model. Using {len(update_data)} samples.")
         if is_hybrid_data and SUPPORTS_HYBRID_MODEL:
             # BUG fit new fails when the data is split in such a way that there is only one labeled data entry
@@ -216,6 +223,7 @@ class Projector():
             self._projection_model_latest.fit_new(data=update_data, labels=None, time_points=time_points, past_projections=projections)
         else:
             self._projection_model_latest.fit_new(data=update_data, labels=labels, time_points=time_points, past_projections=projections)
+        print("Completted fitting new model")
         logger.info("Completted fitting new model")
 
         if self._projection_model_curr is None:
@@ -271,8 +279,11 @@ class Projector():
             self._recent_labels.clear()
             self._recent_time_points.clear()
 
+        if not isinstance(recent_data_copy, pd.DataFrame):
+            recent_data_copy = pd.DataFrame(recent_data_copy)
+
         historic_data_data_columns = self._historic_df.drop(['ids', 'labels', 'time points'], axis=1)
-        update_data = concact_dataframes(historic_data_data_columns, recent_data_copy, True)
+        update_data = pd.concat([historic_data_data_columns, recent_data_copy], ignore_index=True)
         updated_ids = list(pd.concat([self._historic_df['ids'], pd.Series(recent_ids_copy)], ignore_index=True))
         updated_labels = list(pd.concat([self._historic_df['labels'], pd.Series(recent_labels_copy)], ignore_index=True))
         updated_time_points = list(pd.concat([self._historic_df['time points'], pd.Series(recent_time_points_copy)], ignore_index=True))

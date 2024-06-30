@@ -7,10 +7,10 @@ data-stream-name = 'mockup_random'
 stream-buffer-size-s = 0.05
 
 labels = [
-    'label1',
-    'label2',
-    'label3',
-    'label4'
+    'a',
+    'b',
+    'c',
+    'd'
 ]
 unclassified-label = 'unclassified'
 
@@ -25,9 +25,9 @@ hyperparameter-config-folder = './configs/hyperparameters'
 [projector-settings]
     projection-method = 'UMAP_Approx'
     align-projection = true
-    use-mock-data = true
+    use-mock-data = false
     min-training-samples-to-start-projecting = 5
-    max-sampling-frequency = 10
+    max-sampling-frequency = 1
     max-model-update-frequency = 0.1
 
 
@@ -45,9 +45,9 @@ hyperparameter-config-folder = './configs/hyperparameters'
     transition-duration = 500
     
     [plot-settings.label-colors]
-        label1 = 'blue'
-        label2 = 'red'
-        label3 = 'green'
+        a = 'blue'
+        b = 'red'
+        c = 'green'
 
     [plot-settings.opacity-thresholds]
         '1' = 20
@@ -68,16 +68,16 @@ hyperparameter-config-folder = './configs/hyperparameters'
 
 
 [stream-settings]
-    feature-stream-name = ''
-    auxiliary-stream-name = ''
+    feature-stream-name = 'mockup_random'
+    auxiliary-stream-name = 'mockup_random_markers'
     stream-buffer-size-s = 1
-    max-time-drift = 0.00001
+    auxiliary-stream-drift = 0
 
     [stream-settings.feature-stream-layout]
-        id-index = 'first'
+        id-index = ''
 
     [stream-settings.auxiliary-stream-layout]
-        id-index = 'first'
+        id-index = ''
         label-section = 'ground truth label'
 
         [stream-settings.auxiliary-stream-layout.section.ground-truth-label]
