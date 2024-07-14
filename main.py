@@ -75,6 +75,8 @@ def main() -> int:
         launch()
         projector : Projector = process_manager._managed_objects["projector"]
 
+        # The lines below are an example sequence of calls to the projector. They may be changed for testing/debugging purposes.
+
         project_new_data(projector, 100)
         projector.update_projector()
         project_new_data(projector, 1000)
@@ -82,9 +84,10 @@ def main() -> int:
         project_new_data(projector, 1000)
         project_new_data(projector, 100)
         projector.update_projector()
+
+        # ---------------------------------------------------------------------------------------------------------------------------
 
         time.sleep(6000)
-
 
     elif mode == 'continuous':
         launch()
