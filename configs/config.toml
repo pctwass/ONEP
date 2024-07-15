@@ -25,7 +25,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
 [projector-settings]
     projection-method = 'UMAP_Approx'
     align-projection = true
-    use-mock-data = true
+    use-mock-data = false
     min-training-samples-to-start-projecting = 5
     max-sampling-frequency = 100
     max-model-update-frequency = 0.1
