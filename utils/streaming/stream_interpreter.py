@@ -5,90 +5,101 @@ from stream_settings import *
 
 class StreamInterpreterTypeEnum(Enum):
     Features = 1
-    Labels = 2
+    Auxiliary = 2
     Other = 3
 
 class StreamInterpreter():
-    __stream_layout : StreamLayout
-    __interpreter_type : StreamInterpreterTypeEnum
-    __id_index : int 
+    _stream_settings : StreamSettings
+    _stream_layout : StreamLayout
+    _interpreter_type : StreamInterpreterTypeEnum
+    _id_index : int 
+    _interpret_labels : bool = False
+    _label_interpretation_method : str
 
-    def __init__(self, stream_layout : StreamLayout, interpreter_type : StreamInterpreterTypeEnum):
-        self.__stream_layout = stream_layout
-        self.__interpreter_type = interpreter_type
+    _feature_section : StreamSection
+    _label_section : StreamSection
+    _contains_sample_index = False
+
+
+    def __init__(self, stream_settings : StreamSettings, stream_layout : StreamLayout, interpreter_type : StreamInterpreterTypeEnum):
+        self._stream_settings = stream_settings
+        self._stream_layout = stream_layout
+        self._interpreter_type = interpreter_type
 
         if isinstance(stream_layout.id_index, str):
             stream_layout.id_index = str.lower(stream_layout.id_index)
 
-        match stream_layout.id_index:
-            case "first": self.__id_index = 0
-            case "last": self.__id_index = -1
-            case "": self.__id_index = None
-            case _: self.__id_index = stream_layout.id_index 
-
-
-    def interpret(self, stream_content : np.ndarray) -> tuple[any, int]:
-        match self.__interpreter_type:
-            case StreamInterpreterTypeEnum.Features:
-                return self._interpret_feature_stream(stream_content)
-            case StreamInterpreterTypeEnum.Labels:
-                return self._interpret_auxiliary_stream(stream_content)
-            case _:
-                raise Exception("stream interpretation exception: unknown interpreter type")
-        
-
-    def _interpret_feature_stream(self, stream_content : np.ndarray) -> tuple[any, int]:
-        if self.__id_index is not None:
-            id_index = stream_content[:, self.__id_index]
-            stream_content = np.delete(stream_content, self.__id_index, axis=1)
-            return stream_content, id_index
-        return stream_content, None
-    
-
-    def _interpret_auxiliary_stream(self, stream_content : np.ndarray) -> tuple[any, int]:
-        if self.__id_index is not None:
-            id_index = stream_content[:, self.__id_index]
-            stream_content = np.delete(stream_content, self.__id_index, axis=1)
+        if stream_layout.id_index is not None and stream_layout.id_index != '':
+            self._contains_sample_index = True
+            match stream_layout.id_index:
+                case "first": self._id_index = 0
+                case "last": self._id_index = -1
+                case _: self._id_index = stream_layout.id_index 
         else:
-            id_index = None
+            self._contains_sample_index = False
 
-        start_index, end_index = self._get_target_section_start_and_end_index()
-        label_data = stream_content[:, start_index:end_index]
+        if stream_settings.labels_from_auxiliary_stream and interpreter_type is StreamInterpreterTypeEnum.Auxiliary:
+            self._interpret_labels = True
+        elif not stream_settings.labels_from_auxiliary_stream and interpreter_type is StreamInterpreterTypeEnum.Features:
+            self._interpret_labels = True
 
-        stream_section = self.__stream_layout.sections[self.__stream_layout.label_section]
-        match stream_section.interpretation:
-            case "one-to-one":
-                if label_data.shape[1] > 1:
-                    raise Exception(f"stream interpretation exception: 'one-to-one' mapping not possible, stream label section has more than one entry. Section: {self.__stream_layout.label_section}")
-                labels = label_data
-            case "index of highest":
-                labels = self._select_index_of_highest(label_data)
-            case "index of lowest":
-                labels = self._select_index_of_lowest(label_data)
-            case _:
-                raise Exception(f"stream interpretation exception: unknown interpretation method. Section: {self.__stream_layout.label_section}, provided method: {stream_section.interpretation}")
-            
-        return labels, id_index
+        if self._interpreter_type is StreamInterpreterTypeEnum.Features:
+            self._feature_section = self._stream_layout.sections[self._stream_settings.feature_section]
 
+        if self._interpret_labels:
+            self._label_interpretation_method = stream_settings.label_interpretation_method
+            self._label_section = self._stream_layout.sections[self._stream_settings.label_section]
 
-    def _get_target_section_start_and_end_index(self) -> tuple[int, int]:
-        target_section = self.__stream_layout.label_section
-
-        start_index = 0
-        for section in self.__stream_layout.sections.values():
-            if section.name == target_section:
-                return start_index, start_index + section.length
-            start_index += section.length
+    def interpret(self, stream_content : np.ndarray) -> tuple[enumerate[int], enumerate[any], enumerate[int|str]]:
+        if stream_content is None or len(stream_content) == 0:
+            return None, None, None
         
-        raise Exception("Stream interpreter exception: could not find target section")
+        ids = None
+        if self._contains_sample_index:
+            ids = stream_content[:, self._id_index]
+
+        features = None
+        if self._interpreter_type is StreamInterpreterTypeEnum.Features:
+            start_index = self._feature_section.start_index
+            features = stream_content[:, start_index : start_index + self._feature_section.length]
+
+        labels = None
+        if self._interpret_labels:
+            start_index = self._label_section.start_index
+            label_data = stream_content[:, start_index : start_index + self._label_section.length]
+            labels = self._interpret_label_data(label_data)
+
+        return ids, features, labels
+        
+
+    def _interpret_label_data(self, label_data : enumerate) -> enumerate:
+        interpretation_method = self._stream_settings.label_interpretation_method
+        match interpretation_method:
+            case "one-to-one":
+                labels = select_one_to_one(label_data)
+            case "index of highest":
+                labels = select_index_of_highest(label_data)
+            case "index of lowest":
+                labels = select_index_of_lowest(label_data)
+            case _:
+                raise Exception(f"stream interpretation exception: unknown interpretation method. Section: {self._stream_settings.label_section}, provided method: {interpretation_method}")
+        
+        return labels
 
 
 # -------------- Interpretation Functions --------------
 
-    # NOTE: in the case of two or more columns having the highest value, the first column is selected
-    def _select_index_of_highest(stream_content_section : np.ndarray):
-        return np.argmax(stream_content_section, axis=1)
+def select_one_to_one(stream_content_section : np.ndarray):
+    if stream_content_section.shape[1] > 1:
+        raise Exception(f"stream interpretation exception: 'one-to-one' mapping not possible, stream label section has more than one entry.")
+    content = stream_content_section
+    # reshape np.ndarray to a list
+    return [item for sublist in content for item in sublist]
 
-    # NOTE: in the case of two or more columns having the lowest value, the first column is selected
-    def _select_index_of_lowest(stream_content_section : np.ndarray):
-        return np.argmin(stream_content_section, axis=1)
+# NOTE: in the case of two or more columns having the highest value, the first column is selected
+def select_index_of_highest(stream_content_section : np.ndarray):
+    return np.argmax(stream_content_section, axis=1)
+
+# NOTE: in the case of two or more columns having the lowest value, the first column is selected
+def select_index_of_lowest(stream_content_section : np.ndarray):
+    return np.argmin(stream_content_section, axis=1)

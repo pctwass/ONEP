@@ -25,7 +25,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
 [projector-settings]
     projection-method = 'UMAP_Approx'
     align-projection = true
-    use-mock-data = false
+    use-mock-data = true
     min-training-samples-to-start-projecting = 5
     max-sampling-frequency = 100
     max-model-update-frequency = 0.1
@@ -68,24 +68,39 @@ hyperparameter-config-folder = './configs/hyperparameters'
 
 
 [stream-settings]
-    feature-stream-name = 'mockup_random'
-    auxiliary-stream-name = 'mockup_random_markers'
-    stream-buffer-size-s = 1
-    auxiliary-stream-drift = 0
+    feature-stream-name = 'Features'
+    auxiliary-stream-name = 'Classifier'
+    stream-buffer-size-s = 10
+    
+    feature-section = 'features'
+
+    watch-labels = true
+    label-section = 'ground truth labels'
+    labels-from-auxiliary-stream = false
+    label-interpretation-method = "one-to-one"
+
+    match-by-entry-id = false
+    label-feature-matching-scheme = 'match-samples'
+
+    auxiliary-stream-drift-ms = 0
 
     [stream-settings.feature-stream-layout]
         id-index = ''
 
+        [stream-settings.feature-stream-layout.section.features]
+            section-name = 'features'
+            start-index = 0
+            length = 10
+
+        [stream-settings.feature-stream-layout.section.ground-truth-label]
+            section-name = 'ground truth labels'
+            start-index = 10
+            length = 1
+
     [stream-settings.auxiliary-stream-layout]
         id-index = ''
-        label-section = 'ground truth label'
-
-        [stream-settings.auxiliary-stream-layout.section.ground-truth-label]
-            section-name = 'ground truth label'
-            length = 1
-            interpretation = 'one-to-one'
 
         [stream-settings.auxiliary-stream-layout.section.classification-results]
             section-name = 'classification results'
-            length = 6
-            interpretation = 'index of highest'
+            start-index = 0
+            length = 3

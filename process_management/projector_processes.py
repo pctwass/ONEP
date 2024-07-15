@@ -5,12 +5,12 @@ from processing_utils import *
 from utils.logging import logger
 from projector.main_projector import Projector
 from utils.streaming.stream_watcher import StreamWatcher
-from utils.data_mocker import get_mock_data
+from utils.data_mocker import get_mock_data_norm_dist, get_mock_data_arrays
 
 
 def create_living_process_project(projector : Projector, stream_watcher : StreamWatcher, flags : dict[str, multiprocessing.Event], locks : dict[str, multiprocessing.Lock], use_mock_data : bool = False) -> multiprocessing.Process:
     if use_mock_data:
-        reader_function = get_mock_data
+        reader_function = get_mock_data_norm_dist
         connect_to_stream = False
     else:
         reader_function = stream_watcher.read

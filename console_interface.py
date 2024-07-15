@@ -5,7 +5,7 @@ import dependency_resolver
 from utils.logging import logger
 from main import launch, start, stop
 
-CONSOLE_COMMANDS = ["LAUNCH", "START", "STOP", "EXIT"]
+CONSOLE_COMMANDS = ["LAUNCH", "START PROJECTOR", "STOP PROJECTOR", "EXIT"]
 
 
 class ConsoleInterface():
@@ -40,10 +40,10 @@ class ConsoleInterface():
             case "LAUNCH": 
                 print("Launching ONEP, this may take a moment.")
                 launch()
-            case "START":
+            case "START PROJECTOR":
                 print("Starting projector.")
                 start()
-            case "STOP":
+            case "STOP PROJECTOR":
                 print("Stopping projector.")
                 stop()
             case "EXIT":

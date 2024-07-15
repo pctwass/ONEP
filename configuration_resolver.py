@@ -33,33 +33,43 @@ class ConfigurationResolver:
         stream_settings.feature_stream_name = stream_config_section.get("feature-stream-name")
         stream_settings.auxiliary_stream_name = stream_config_section.get("auxiliary-stream-name")
         stream_settings.stream_buffer_size_s = stream_config_section.get("stream-buffer-size-s")
-        stream_settings.auxiliary_stream_drift = stream_config_section.get("auxiliary-stream-drift")
+        stream_settings.feature_section = stream_config_section.get("feature-section")
+        stream_settings.watch_labels = stream_config_section.get("watch-labels")
+        stream_settings.label_section = stream_config_section.get("label-section")
+        stream_settings.labels_from_auxiliary_stream = stream_config_section.get("labels-from-auxiliary-stream")
+        stream_settings.label_interpretation_method = stream_config_section.get("label-interpretation-method")
+        stream_settings.match_by_entry_id = stream_config_section.get("match-by-entry-id")
+        stream_settings.label_feature_matching_scheme = stream_config_section.get("label-feature-matching-scheme")
+        stream_settings.auxiliary_stream_drift_ms = stream_config_section.get("auxiliary-stream-drift-ms")
 
         feature_stream_layout = StreamLayout()
         feature_stream_layout_config_section = stream_config_section.get("feature-stream-layout")
         feature_stream_layout.id_index = feature_stream_layout_config_section.get("id-index")
+        feature_stream_layout.sections = self._get_stream_sections_from_config(feature_stream_layout_config_section)
 
         auxiliary_stream_layout = StreamLayout()
         auxiliary_stream_layout_config_section = stream_config_section.get("auxiliary-stream-layout")
         auxiliary_stream_layout.id_index = auxiliary_stream_layout_config_section.get("id-index")
-        auxiliary_stream_layout.label_section = auxiliary_stream_layout_config_section.get("label-section")
-
-        auxiliary_stream_sections = {}
-        auxilalary_stream_config_subsections = self._get_subsections(auxiliary_stream_layout_config_section.get("section"))
-        for config_subsection in auxilalary_stream_config_subsections.values():
-            stream_section_name = config_subsection.get("section-name")
-            
-            stream_section = StreamSections()
-            stream_section.name = stream_section_name
-            stream_section.length = config_subsection.get("length")
-            stream_section.interpretation = config_subsection.get("interpretation")
-
-            auxiliary_stream_sections[stream_section_name] = stream_section
-        auxiliary_stream_layout.sections = auxiliary_stream_sections
+        auxiliary_stream_layout.sections = self._get_stream_sections_from_config(auxiliary_stream_layout_config_section)
 
         stream_settings.feature_stream_layout = feature_stream_layout
         stream_settings.auxiliary_stream_layout = auxiliary_stream_layout
         return stream_settings
+    
+
+    def _get_stream_sections_from_config(self, stream_layout_config_section) -> dict[str,StreamSection]:
+        stream_sections = {}
+        stream_layout_config_subsections = self._get_subsections(stream_layout_config_section.get("section"))
+        for config_subsection in stream_layout_config_subsections.values():
+            stream_section_name = config_subsection.get("section-name")
+            
+            stream_section = StreamSection()
+            stream_section.name = stream_section_name
+            stream_section.start_index = config_subsection.get("start-index")
+            stream_section.length = config_subsection.get("length")
+
+            stream_sections[stream_section_name] = stream_section
+        return stream_sections
 
 
     def get_projector_settings_from_config(self) -> ProjectorSettings:

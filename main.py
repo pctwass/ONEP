@@ -8,7 +8,7 @@ from configuration_resolver import ConfigurationResolver
 from fire import Fire
 
 from projector.main_projector import Projector
-from utils.data_mocker import get_mock_data
+from utils.data_mocker import get_mock_data_norm_dist
 from utils.logging import logger
 from utils.streaming.stream_settings import StreamSettings
 from dashboard.dahsboard_settings import DashboardSettings
@@ -69,7 +69,7 @@ def stop() -> int:
 
 def main() -> int:
     init_logger()
-    mode = 'sequential'
+    mode = 'continuous'
 
     if mode == 'sequential':
         launch()
@@ -106,7 +106,7 @@ def main() -> int:
 
 def project_new_data(projector, repeat : int = 1):
     for i in range(repeat):
-        data, time_points, labels = get_mock_data()
+        data, time_points, labels = get_mock_data_norm_dist()
         projector.project_new_data(data, time_points, labels)
 
 
