@@ -240,27 +240,24 @@ class Projector():
 
         historic_df, data, ids, labels, time_points = self.get_updated_historic_data()
         self._historic_df = historic_df
-        self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
         
         logger.info(f"projecting the following quanities: data={len(data)}, time points={len(time_points)}, labels={len(labels)}")
-        latest_projections = self.project_data(data, use_latest=True)
+        projections = self.project_data(data, use_latest=True)
         
-        self.aquire_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
         if len(self._projections) == 0:
-            self._projections = latest_projections
-        elif len(self._projections) >= len(latest_projections): 
-            # make sure only to overwrite the first n entries, otherwise, novel projections added to self._projections between the updating of the historic data~
-            # and this assignment are lost, causing errors when fitting a new model.
-            self._projections[:len(latest_projections), :latest_projections.shape[1]] = latest_projections
+            self._projections = projections
+        elif len(self._projections) >= len(projections): 
+            # Should not occure due ot locking, but in the case there is a faulty race condition, do not overwrite newer projections. 
+            self._projections[:len(projections), :projections.shape[1]] = projections
         else:
-            self._projections = latest_projections
+            self._projections = projections
         
         self._projection_model_curr = copy.deepcopy(self._projection_model_latest)
         self.release_lock(LOCK_NAME_MUTATE_PROJECTOR_DATA) # --------------------------------------
         
         logger.info(f"Plotting new model. Taking {len(ids)} points")
         try:
-            self._plot_manager.update_plot(latest_projections, ids, time_points, labels)
+            self._plot_manager.update_plot(projections, ids, time_points, labels)
             
         except Exception as e:
             logger.error(f"Projector Plotting Exception: {str(e)}")
