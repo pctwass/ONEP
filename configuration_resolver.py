@@ -38,7 +38,7 @@ class ConfigurationResolver:
         stream_settings.label_section = stream_config_section.get("label-section")
         stream_settings.labels_from_auxiliary_stream = stream_config_section.get("labels-from-auxiliary-stream")
         stream_settings.label_interpretation_method = stream_config_section.get("label-interpretation-method")
-        stream_settings.match_by_entry_id = stream_config_section.get("match-by-entry-id")
+        stream_settings.match_by_entry_id = stream_config_section.get("match-by-sample-id")
         stream_settings.label_feature_matching_scheme = stream_config_section.get("label-feature-matching-scheme")
         stream_settings.auxiliary_stream_drift_ms = stream_config_section.get("auxiliary-stream-drift-ms")
 
@@ -78,7 +78,7 @@ class ConfigurationResolver:
         projector_settings = ProjectorSettings()
         method_string = projector_config_section.get("projection-method")
         projector_settings.projection_method = ProjectionMethodEnum.from_string(method_string)
-        projector_settings.align_projections = projector_config_section.get("align-projection")
+        projector_settings.align_projections = projector_config_section.get("align-projections")
         projector_settings.use_mock_data = projector_config_section.get("use-mock-data")
 
         projector_settings.min_training_samples_to_start_projecting = projector_config_section.get('min-training-samples-to-start-projecting')

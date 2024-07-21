@@ -24,10 +24,10 @@ hyperparameter-config-folder = './configs/hyperparameters'
 
 [projector-settings]
     projection-method = 'UMAP_Approx'
-    align-projection = true
-    use-mock-data = false
+    align-projections = false
+    use-mock-data = true
     min-training-samples-to-start-projecting = 5
-    max-sampling-frequency = 100
+    max-sampling-frequency = 10
     max-model-update-frequency = 0.1
 
 
@@ -64,9 +64,10 @@ hyperparameter-config-folder = './configs/hyperparameters'
 
 [dashboard-settings]
     graph-refresh-frequency = 2
-    refresh-after-selection = true
 
 
+# The stream settings can be ratjer complex for a novel user.
+# Please look at the streaming section of the user guide for an explination on how to set the following config correctly.
 [stream-settings]
     feature-stream-name = 'Features'
     auxiliary-stream-name = 'Classifier'
@@ -79,7 +80,7 @@ hyperparameter-config-folder = './configs/hyperparameters'
     labels-from-auxiliary-stream = false
     label-interpretation-method = "one-to-one"
 
-    match-by-entry-id = false
+    match-by-sample-id = false
     label-feature-matching-scheme = 'match-samples'
 
     auxiliary-stream-drift-ms = 0

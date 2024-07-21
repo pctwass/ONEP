@@ -1,5 +1,3 @@
-# from dareplane_utils.logging.logger import get_logger
-import logging as py_logging
+from dareplane_utils.logging.logger import get_logger
 
-# logger = get_logger("ONEP")
-logger = py_logging.getLogger("ONEP")
+logger = get_logger("ONEP")

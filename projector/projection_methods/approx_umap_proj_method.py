@@ -1,5 +1,6 @@
+from copy import deepcopy
 import numpy as np
-from approx_umap import ApproxUMAP
+from approx_umap import ApproxUMAP, ApproxAlignedUMAP
 
 from utils.logging import logger
 from projection_methods.projection_methods_enum import ProjectionMethodEnum
@@ -14,9 +15,11 @@ class ApproxUmapProjMethod(IProjectionMethod):
     _neighbour_distance_modifier = 1e-8  # Ensures the minimal distance between neighbours is never exactly 0. Set to a neglectably small value
     _hyperparameters : dict[str, any] = {}
     _align_projections : bool = False
+    _fitted_once : bool = False
 
 
     def __init__(self, hyperparameters : dict[str, any], init_data : any = None, align_projections : bool = False):
+        self._fitted_once = False
         self._align_projections = align_projections
         self._hyperparameters = hyperparameters
         n_neighbors = hyperparameters["n_neighbors"]
@@ -25,8 +28,10 @@ class ApproxUmapProjMethod(IProjectionMethod):
         if init_data is not None:
             self.fit_new(init_data)
         else:
-            self._projector = ApproxUMAP(**self._hyperparameters)
-
+            if align_projections:
+                self._projector = ApproxAlignedUMAP(**self._hyperparameters)
+            else:
+                self._projector = ApproxUMAP(**self._hyperparameters)
 
 
     def get_method_type(self) -> ProjectionMethodEnum:
@@ -38,15 +43,17 @@ class ApproxUmapProjMethod(IProjectionMethod):
         labels = kwargs["labels"]
 
         if self._align_projections:
-            if "past_projections" in kwargs and kwargs["past_projections"] is not None and len(kwargs["past_projections"]) > 0:
-                self._hyperparameters["init"] = kwargs["past_projections"]
+            if self._fitted_once:
+                curr_reducer = deepcopy(self._projector)
+                new_reducer = curr_reducer.update_transform(X=data, y=labels)
             else:
-                logger.debug(" align_projections is True, but no past projections were given.")
-
-        past_projection_count = len(kwargs["past_projections"])
-        logger.debug(f"update data count: {len(data)}, past projections count: {past_projection_count}")
-        new_reducer = ApproxUMAP(**self._hyperparameters)
-        new_reducer.fit(X=data, y=labels)
+                new_reducer = ApproxAlignedUMAP(**self._hyperparameters)
+                new_reducer.fit(X=data, y=labels)
+                self._fitted_once = True
+        else:
+            new_reducer = ApproxUMAP(**self._hyperparameters)
+            new_reducer.fit(X=data, y=labels)
+            self._fitted_once = True
         self._projector = new_reducer
 
 

@@ -51,7 +51,7 @@ def launch() -> int:
     dashboard_settings = dashboard_kwargs["settings"]
     host = dashboard_settings.host
     port = dashboard_settings.port
-    webbrowser.open(f"http://{host}:{port}/")
+    # webbrowser.open(f"http://{host}:{port}/")
     return 0
 
 
@@ -69,7 +69,7 @@ def stop() -> int:
 
 def main() -> int:
     init_logger()
-    mode = 'continuous'
+    mode = 'sequential'
 
     if mode == 'sequential':
         launch()

@@ -141,7 +141,6 @@ class Projector():
         if self._projection_model_curr is not None:
             logger.debug(f"Plotting new projections. Taking {len(ids)} points. Last point: {ids[-1]}. ")
             projections = self.project_data(data)
-            print(f"Plotting points.")
             logger.debug(f"Plotting points.")
             self._plot_manager.plot(projections, ids, time_points, labels)
 
