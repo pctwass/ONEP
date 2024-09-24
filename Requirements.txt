@@ -1,5 +1,6 @@
 approx-umap==0.3.0
 cebra==0.3.0
+colorlog>=6.8.2
 dareplane_utils==0.0.8
 dash==2.14.1
 dash_daq==0.5.0

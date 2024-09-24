@@ -20,5 +20,5 @@ The Online Neurodata and Embedding Projector (ONEP) module allows a user to feed
 
 ## Documentation
 
-- For an extensive overview of how to use ONEP, including how to implement a new projection method, see the [user guide](https://github.com/pctwass/Dareplane/blob/main/modules/dp-embedding-projector/documentation/USER%20GUIDE.md) in the documentation section.
-- To get an overview and explanation of the implementation of ONEP for development purposes, see the [development guide](https://github.com/pctwass/Dareplane/blob/main/modules/dp-embedding-projector/documentation/DEV%20GUIDE.md) in the documentation section.
+- For an extensive overview of how to use ONEP, including how to implement a new projection method, see the [user guide](https://github.com/pctwass/ONEP/blob/main/documentation/USER%20GUIDE.md) in the documentation section.
+- To get an overview and explanation of the implementation of ONEP for development purposes, see the [development guide](https://github.com/pctwass/ONEP/blob/main/documentation/DEV%20GUIDE.md) in the documentation section.
