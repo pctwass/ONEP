@@ -1,6 +1,5 @@
 from fire import Fire
 
-import dependency_resolver
 from main import launch, start, stop
 from utils.logging import logger
 

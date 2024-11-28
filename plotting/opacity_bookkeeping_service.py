@@ -2,7 +2,8 @@
 import numpy as np
 import plotly.graph_objects as go
 from typing import Iterable
-from plotly_scatter_service import PlotlyScatterService
+
+from plotting.plotly_scatter_service import PlotlyScatterService
 from utils.logging import logger
 
 

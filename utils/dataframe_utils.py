@@ -3,7 +3,10 @@ import numpy as np
 from pyparsing import Iterable
 
 def pack_dataframe(data, ids : Iterable, labels : Iterable, time_points : Iterable):
-    df = pd.DataFrame(data)
+    if isinstance(data, pd.DataFrame):
+        df = data.copy()
+    else: df = pd.DataFrame(data)
+
     df['ids'] = ids
     df['labels'] = labels
     df['time points'] = time_points

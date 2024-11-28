@@ -1,5 +1,5 @@
-from plot_settings import PlotSettings
-from projection_methods.projection_methods_enum import ProjectionMethodEnum
+from projector.plot_settings import PlotSettings
+from projector.projection_methods.projection_methods_enum import ProjectionMethodEnum
 
 class ProjectorSettings():
     projection_method : ProjectionMethodEnum

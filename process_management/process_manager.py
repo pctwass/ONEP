@@ -5,9 +5,9 @@ from projector.main_projector import Projector
 from projector.projector_plot_manager import ProjectorPlotManager
 from dashboard.dahsboard_settings import DashboardSettings
 from projector.projector_settings import ProjectorSettings
-from projector_processes import create_living_process_project, create_living_process_update_projector
-from dashboard_processes import create_process_dashboard
-from processing_utils import *
+from process_management.projector_processes import create_living_process_project, create_living_process_update_projector
+from process_management.dashboard_processes import create_process_dashboard
+from process_management.processing_utils import *
 from utils.streaming.stream_watcher import StreamWatcher
 
 

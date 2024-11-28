@@ -3,8 +3,8 @@ import pandas as pd
 import umap
 
 from utils.logging import logger
-from projection_methods.projection_methods_enum import ProjectionMethodEnum
-from projection_methods.projection_method_interface import IProjectionMethod
+from projector.projection_methods.projection_methods_enum import ProjectionMethodEnum
+from projector.projection_methods.projection_method_interface import IProjectionMethod
 
 class UmapProjMethod(IProjectionMethod):
     _method_type = ProjectionMethodEnum.UMAP

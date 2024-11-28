@@ -1,6 +1,7 @@
 from dash import html, dcc
 import dash_bootstrap_components as dbc 
 import dash_daq as daq
+
 from dashboard.dahsboard_settings import DashboardSettings
 
 

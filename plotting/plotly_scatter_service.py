@@ -1,13 +1,12 @@
-import time
 import plotly.graph_objects as go
 import numpy as np
 import itertools
 from pyparsing import Iterable
 
-from scatter_plot_settings import ScatterPlotSettings
-from plotly_plot_service import PlotlyPlotSerivce
-from plotly_selection_service import PlotlySelectionService
-from plotly_highlight_service import PlotlyHighlightService
+from plotting.scatter_plot_settings import ScatterPlotSettings
+from plotting.plotly_plot_service import PlotlyPlotSerivce
+from plotting.plotly_selection_service import PlotlySelectionService
+from plotting.plotly_highlight_service import PlotlyHighlightService
 from utils.logging import logger
 
 
