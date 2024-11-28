@@ -1,6 +1,7 @@
 import abc
 import pandas as pd
-from projection_methods.projection_methods_enum import ProjectionMethodEnum
+
+from projector.projection_methods.projection_methods_enum import ProjectionMethodEnum
 
 
 class IProjectionMethod(metaclass=abc.ABCMeta):

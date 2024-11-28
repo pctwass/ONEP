@@ -1,9 +1,9 @@
 from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher as DpStreamWatcher
 import numpy as np
-import pandas as pd
-from stream_settings import *
-from stream_interpreter import StreamInterpreter, StreamInterpreterTypeEnum
-from stream_matcher import StreamMatcher
+
+from utils.streaming.stream_settings import *
+from utils.streaming.stream_interpreter import StreamInterpreter, StreamInterpreterTypeEnum
+from utils.streaming.stream_matcher import StreamMatcher
 
 class StreamWatcher():
     _settings : StreamSettings

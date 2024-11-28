@@ -1,7 +1,7 @@
 import numpy as np
-import pandas as pd
 from enum import Enum
-from stream_settings import *
+
+from utils.streaming.stream_settings import *
 
 class StreamInterpreterTypeEnum(Enum):
     Features = 1

@@ -1,4 +1,3 @@
-import time
 import random
 import numpy as np
 import plotly.graph_objects as go
@@ -10,7 +9,7 @@ from pyparsing import Iterable
 from utils.logging import logger
 from utils.dataframe_utils import *
 from utils.Iterable_utils import *
-from plot_settings import PlotSettings
+from projector.plot_settings import PlotSettings
 from plotting.plotly_scatter_service import PlotlyScatterService
 from plotting.plotly_selection_service import PlotlySelectionService
 from plotting.plotly_highlight_service import PlotlyHighlightService

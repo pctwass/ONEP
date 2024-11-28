@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 
-from scatter_plot_settings import ScatterPlotSettings
-from plotly_plot_service import PlotlyPlotSerivce
+from plotting.scatter_plot_settings import ScatterPlotSettings
+from plotting.plotly_plot_service import PlotlyPlotSerivce
 
 SELECTION_TRACE_ID = 'scatter_selection'
 SELECTION_POINT_ID_PREFIX = 'selection_'

@@ -1,9 +1,9 @@
 import multiprocessing
 import time
 
-from processing_utils import *
-from utils.logging import logger
+from process_management.processing_utils import *
 from projector.main_projector import Projector
+from utils.logging import logger
 from utils.streaming.stream_watcher import StreamWatcher
 from utils.data_mocker import get_mock_data_norm_dist, get_mock_data_arrays
 

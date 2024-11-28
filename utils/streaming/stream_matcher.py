@@ -1,5 +1,5 @@
 import numpy as np
-from stream_settings import *
+from utils.streaming.stream_settings import *
 
 class StreamMatcher():
     _label_matching_scheme : str

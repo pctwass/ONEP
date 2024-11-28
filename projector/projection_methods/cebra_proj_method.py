@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
-import time
 
-from utils.logging import logger
-from projection_methods.projection_methods_enum import ProjectionMethodEnum
-from projection_methods.projection_method_interface import IProjectionMethod
-from projection_methods.submodules.CEBRA.cebra import CEBRA
+# add the CEBRA submodule to the working path
+from  projector.projection_methods.submodules.submodule_path_resolver import add_cebra_submodule_to_path
+add_cebra_submodule_to_path()
+
+from projector.projection_methods.projection_methods_enum import ProjectionMethodEnum
+from projector.projection_methods.projection_method_interface import IProjectionMethod
+from projector.projection_methods.submodules.CEBRA.cebra import CEBRA
 
 class CebraProjMethod(IProjectionMethod):
     _projector : CEBRA
