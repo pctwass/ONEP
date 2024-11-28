@@ -1,5 +1,6 @@
 import os
 import tomllib
+
 from dashboard.dahsboard_settings import DashboardSettings
 from projector.plot_settings import PlotSettings
 from projector.projector_settings import ProjectorSettings

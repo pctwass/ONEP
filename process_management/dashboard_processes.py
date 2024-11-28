@@ -1,6 +1,6 @@
 import multiprocessing
 
-from processing_utils import *
+from process_management.processing_utils import *
 from dashboard.dashboard import Dashboard
 from dashboard.dahsboard_settings import DashboardSettings
 from projector.main_projector import Projector

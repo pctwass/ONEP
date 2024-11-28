@@ -1,5 +1,4 @@
 import copy
-from math import nan
 import multiprocessing
 import uuid
 import pandas as pd
@@ -9,14 +8,14 @@ import time
 from utils.logging import logger
 from utils.data_mocker import *
 from utils.dataframe_utils import *
-from projector_settings import ProjectorSettings
-from projector_plot_manager import ProjectorPlotManager
-from projection_methods.projection_methods_enum import ProjectionMethodEnum
-from projection_methods.projection_method_interface import IProjectionMethod
+from projector.projector_settings import ProjectorSettings
+from projector.projector_plot_manager import ProjectorPlotManager
+from projector.projection_methods.projection_methods_enum import ProjectionMethodEnum
+from projector.projection_methods.projection_method_interface import IProjectionMethod
 from projector.projection_methods.umap_proj_method import UmapProjMethod
 from projector.projection_methods.approx_umap_proj_method import ApproxUmapProjMethod
 from projector.projection_methods.cebra_proj_method import CebraProjMethod
-from projection_methods.projection_methods_enum import ProjectionMethodEnum
+from projector.projection_methods.projection_methods_enum import ProjectionMethodEnum
 from process_management.processing_utils import *
 
 
@@ -199,7 +198,7 @@ class Projector():
         # Check if the update_data and number of projections match, if not, this causes an error when aligning the projections.
         projection_count = len(projections)
         if self._settings.align_projections and self.update_count > 0 and len(update_data) > projection_count:
-            logger.warn(f"(alignment) number of datapoints for updating model is greater than the number of projections, turncating update data. Count : {projection_count}")
+            logger.warning(f"(alignment) number of datapoints for updating model is greater than the number of projections, turncating update data. Count : {projection_count}")
             update_data = update_data[:projection_count]
             labels = labels[:projection_count]
             time_points = time_points[:projection_count]

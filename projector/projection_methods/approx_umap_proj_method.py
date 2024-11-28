@@ -3,8 +3,8 @@ import numpy as np
 from approx_umap import ApproxUMAP, ApproxAlignedUMAP
 
 from utils.logging import logger
-from projection_methods.projection_methods_enum import ProjectionMethodEnum
-from projection_methods.projection_method_interface import IProjectionMethod
+from projector.projection_methods.projection_methods_enum import ProjectionMethodEnum
+from projector.projection_methods.projection_method_interface import IProjectionMethod
 
 
 class ApproxUmapProjMethod(IProjectionMethod):
@@ -31,6 +31,8 @@ class ApproxUmapProjMethod(IProjectionMethod):
             if align_projections:
                 self._projector = ApproxAlignedUMAP(**self._hyperparameters)
             else:
+                if "copy_data" in self._hyperparameters:
+                    del self._hyperparameters["copy_data"]
                 self._projector = ApproxUMAP(**self._hyperparameters)
 
 

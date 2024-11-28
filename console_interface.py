@@ -1,7 +1,7 @@
 import os
 import subprocess
 import sys
-import dependency_resolver
+
 from utils.logging import logger
 from main import launch, start, stop
 

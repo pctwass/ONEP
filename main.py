@@ -1,4 +1,3 @@
-import dependency_resolver
 import logging
 import os
 import time
@@ -17,8 +16,6 @@ from projector.plot_settings import PlotSettings
 
 from process_management.process_manager  import ProcessManager
 
-
-module_paths = dependency_resolver.reference_module_paths
 
 config_file_name: str = "config.toml"
 config_folder: str = os.path.join(os.getcwd(), "configs")
@@ -69,7 +66,7 @@ def stop() -> int:
 
 def main() -> int:
     init_logger()
-    mode = 'sequential'
+    mode = 'continuous'
 
     if mode == 'sequential':
         launch()
@@ -134,6 +131,5 @@ def get_dashboard_kwargs(dashboard_settings : DashboardSettings) -> dict[str, an
 
 
 if __name__ == "__main__":
-
     Fire(main)
 
