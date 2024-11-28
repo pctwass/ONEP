@@ -1,34 +1,37 @@
-n_neighbors=15                          # int
-n_components=2                          # int 
-metric="euclidean"                      # Literal (e.g. "euclidean", "manhattan", "chebyshev", ...); see the UMAP documentation for all possible values
-metric_kwds=None                        # dict[string, any]
-n_epochs=None                           # int
-learning_rate=1.0                       # float
-init="spectral"                         # Literal("random", "spectral", "pca") or np.array
-min_dist=0.1                            # float
-spread=1.0                              # float
-low_memory=False                        # bool
-set_op_mix_ratio=1.0                    # float
-local_connectivity=1.0                  # float
-repulsion_strength=1.0                  # float
-negative_sample_rate=5                  # int
-transform_queue_size=4.0                # float
-a=None                                  # float
-b=None                                  # float
-random_state=None                       # np.random state
-angular_rp_forest=False                 # bool
-target_n_neighbors=-1                   # int
-target_metric="categorical"             # Literal or Callable (e.g. "categorical", "l1", "l2", ...); see the UMAP documentation for all possible values
-target_metric_kwds=None                 # dict[string, any]
-target_weight=0.5                       # float
-transform_seed=42                       # int
-force_approximation_algorithm=False     # bool
-verbose=False                           # bool
-unique=False                            # bool
-k=1                                     # float
-fn="inv"                                # Literal("inv", "exp") or Callable[[ndarray], ndarray]
-copy_data=True                          # float
+# --- Note, the following list may not be exhaustive. Check the relevant UMAP flavor/implementation for a full list of the hyperparameters ---  
+
+n_neighbors = 15                        # int
+n_components = 2                        # int 
+metric = "euclidean"                    # Literal (e.g. "euclidean", "manhattan", "chebyshev", ...); see the UMAP documentation for all possible values
+# n_epochs = None                       # int
+learning_rate = 1.0                     # float
+init = "spectral"                       # Literal("random", "spectral", "pca") or np.array
+min_dist = 0.1                          # float
+spread = 1.0                            # float
+low_memory = false                      # bool
+set_op_mix_ratio = 1.0                  # float
+local_connectivity = 1.0                # float
+repulsion_strength = 1.0                # float
+negative_sample_rate = 5                # int
+transform_queue_size = 4.0              # float
+# a = None                              # float
+# b = None                              # float
+# random_state = None                   # np.random state
+angular_rp_forest = false               # bool
+target_n_neighbors = -1                 # int
+target_metric = "categorical"           # Literal or Callable (e.g. "categorical", "l1", "l2", ...); see the UMAP documentation for all possible values
+target_weight = 0.5                     # float
+transform_seed = 42                     # int
+force_approximation_algorithm = false   # bool
+verbose = false                         # bool
+unique = false                          # bool
+k = 1                                   # float
+fn = "inv"                              # Literal("inv", "exp") or Callable[[ndarray], ndarray]
+copy_data = true                        # float
+
+# [metric_kwds]                         # dict[string, any]
+# [target_metric_kwds]                  # dict[string, any]
 
 # ---aligned UMAP specific hyperparameters---
-# alignment_regularisation=1.0e-2       # float
-# alignment_window_size=3               # int 
+# alignment_regularisation = 1.0e-2     # float
+# alignment_window_size = 3             # int 
